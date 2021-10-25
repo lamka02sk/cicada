@@ -2,3 +2,6 @@
 target
 *.local
 .idea
+
+/config/*
+!config/*.default.json

@@ -1,0 +1,22 @@
+{
+  "name": "cicada",
+  "hostname": "localhost",
+  "bind": "127.0.0.1",
+  "port": 5005,
+  "log": "info",
+  "workers": 0,
+  "token": null,
+  "frontend": null,
+  "cache": {
+    "enabled": true,
+    "path": "./cache"
+  },
+  "updates": {
+    "enabled": true,
+    "frequency": 24
+  },
+  "users": {
+    "signup": true,
+    "restrict": []
+  }
+}
