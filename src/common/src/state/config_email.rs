@@ -1,6 +1,7 @@
 use std::error::Error;
-use crate::{Configuration, FileManager, JsonFile};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration};
 use serde::{Deserialize, Serialize};
+use serde_json::error::Result as SerdeResult;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EmailConfiguration {
@@ -11,13 +12,4 @@ pub struct EmailConfiguration {
     pub utf8: bool
 }
 
-impl Configuration for EmailConfiguration {
-
-    fn new(filename: &str) -> Result<Self, Box<dyn Error>> where Self: Sized {
-        match serde_json::from_reader(JsonFile::new(filename).get_reader()?) {
-            Ok(config) => Ok(config),
-            Err(error) => Err(Box::new(error))
-        }
-    }
-
-}
+implement_configuration!(EmailConfiguration);

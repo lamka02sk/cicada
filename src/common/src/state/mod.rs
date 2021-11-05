@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
-use std::io::Read;
+use std::fs::copy;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
-use serde::Deserialize;
-use crate::JsonFile;
 use crate::state::config_email::EmailConfiguration;
+use crate::state::config_system::SystemConfiguration;
 
 use super::{TomlFile, FileManager};
 
 mod config_email;
 mod config_system;
+mod config_notifications;
 
-const CONFIG_FILES: [&str; 1] = [
-    /*"system", */
+const CONFIG_FILES: [&str; 2] = [
+    "system",
     "email"
 ];
 
@@ -28,7 +29,10 @@ impl Cicada {
     fn extract_version() -> String {
 
         let mut file = TomlFile::new("Cargo.toml");
-        file.parse();
+
+        if let Err(error) = file.parse() {
+            panic!("Version number extraction has failed: {}", error);
+        }
 
         file.query("package.version").unwrap().as_str().unwrap().to_string()
 
@@ -37,22 +41,50 @@ impl Cicada {
     fn initialize_configuration() -> HashMap<String, Box<dyn Configuration>> {
 
         fn get_filename(filename: &str) -> String {
-            String::from("config/") + filename + ".default.json"
+            String::from("config/") + filename + ".json"
+        }
+
+        fn prepare_configuration_file(filename: &str) {
+
+            let filename = Path::new(filename);
+
+            // Check if configuration file exists
+            if filename.is_file() {
+                return;
+            }
+
+            // Check if default configuration file exists
+            let default_filename = filename.to_string_lossy().replace(".json", ".default.json");
+            let default_filename = Path::new(&default_filename);
+
+            if !default_filename.is_file() {
+               panic!("Could not create configuration file \"{}\" from default, because the default configuration file doesn't exist", filename.display());
+            }
+
+            // Copy default configuration
+            if let Err(error) = copy(default_filename, filename) {
+                panic!("Could not create configuration file \"{}\" from default: {}", filename.display(), error);
+            }
+
         }
 
         CONFIG_FILES.iter().fold(HashMap::new(), |acc, &config| {
 
-            let configuration = match config {
-                "email" => EmailConfiguration::new(&get_filename(config)),
-                _ => panic!("Handler for configuration file {} is not defined", config)
+            let filename = get_filename(config);
+            prepare_configuration_file(&filename);
+
+            let configuration: Result<Box<dyn Configuration>, Box<dyn Error>> = match config {
+                "email" => EmailConfiguration::new(&filename),
+                "system" => SystemConfiguration::new(&filename),
+                _ => panic!("Handler for configuration file \"{}\" is not defined", config)
             };
 
             if let Err(error) = configuration {
-                panic!("{}", error);
+                panic!("Loading configuration file \"{}\" failed: {}", config, error);
             }
 
             let mut acc = acc;
-            acc.insert(config.to_string(), Box::new(configuration.unwrap()));
+            acc.insert(config.to_string(), configuration.unwrap());
             acc
 
         })
@@ -75,5 +107,21 @@ impl Cicada {
 }
 
 pub trait Configuration: Debug {
-    fn new(filename: &str) -> Result<Self, Box<dyn Error>> where Self: Sized;
+    fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized;
 }
+
+macro_rules! implement_configuration {
+    ($type:ty) => {
+        impl Configuration for $type {
+            fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized {
+                let immediate: SerdeResult<Self> = serde_json::from_reader(JsonFile::new(filename).get_reader()?);
+                match immediate {
+                    Ok(config) => Ok(Box::new(config)),
+                    Err(error) => Err(Box::new(error))
+                }
+            }
+        }
+    }
+}
+
+pub(crate) use implement_configuration;

@@ -32,7 +32,7 @@ pub trait FileManager {
 
         let mut content = String::new();
         let mut reader = self.get_reader()?;
-        reader.read_to_string(&mut content);
+        reader.read_to_string(&mut content)?;
 
         Ok(content)
 
