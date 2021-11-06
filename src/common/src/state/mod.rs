@@ -1,21 +1,28 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs::copy;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use crate::state::config_email::EmailConfiguration;
-use crate::state::config_system::SystemConfiguration;
-
 use super::{TomlFile, FileManager};
 
+mod config_database;
 mod config_email;
 mod config_system;
 mod config_notifications;
 
-const CONFIG_FILES: [&str; 2] = [
+pub use config_database::*;
+pub use config_email::*;
+pub use config_system::*;
+pub use config_notifications::*;
+pub mod enums;
+
+const CONFIG_FILES: [&str; 4] = [
     "system",
-    "email"
+    "email",
+    "notifications",
+    "database"
 ];
 
 #[derive(Debug)]
@@ -76,6 +83,8 @@ impl Cicada {
             let configuration: Result<Box<dyn Configuration>, Box<dyn Error>> = match config {
                 "email" => EmailConfiguration::new(&filename),
                 "system" => SystemConfiguration::new(&filename),
+                "notifications" => NotificationsConfiguration::new(&filename),
+                "database" => DatabaseConfiguration::new(&filename),
                 _ => panic!("Handler for configuration file \"{}\" is not defined", config)
             };
 
@@ -108,20 +117,27 @@ impl Cicada {
 
 pub trait Configuration: Debug {
     fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized;
+    fn as_any(&self) -> &dyn Any;
 }
 
-macro_rules! implement_configuration {
-    ($type:ty) => {
-        impl Configuration for $type {
-            fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized {
-                let immediate: SerdeResult<Self> = serde_json::from_reader(JsonFile::new(filename).get_reader()?);
-                match immediate {
-                    Ok(config) => Ok(Box::new(config)),
-                    Err(error) => Err(Box::new(error))
-                }
+macro_rules! implement_configuration { ($type:ty) => {
+
+    impl Configuration for $type {
+
+        fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized {
+            let immediate: SerdeResult<Self> = serde_json::from_reader(JsonFile::new(filename).get_reader()?);
+            match immediate {
+                Ok(config) => Ok(Box::new(config)),
+                Err(error) => Err(Box::new(error))
             }
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+
     }
-}
+
+}}
 
 pub(crate) use implement_configuration;

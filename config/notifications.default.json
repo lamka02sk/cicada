@@ -6,8 +6,8 @@
       "deploy:fail": "all",
       "deploy:success": "author",
       "system:update": "all",
-      "system:login": "author",
-      "system:signup": "author"
+      "auth:login": "author",
+      "auth:signup": "author"
     }
   },
   "slack": {
@@ -18,8 +18,8 @@
       "deploy:fail": [],
       "deploy:success": [],
       "system:update": [],
-      "system:login": null,
-      "system:signup": []
+      "auth:login": null,
+      "auth:signup": []
     }
   }
 }

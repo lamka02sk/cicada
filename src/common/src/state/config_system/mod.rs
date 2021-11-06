@@ -6,10 +6,12 @@ pub use cache::CacheConfiguration;
 pub use updates::UpdatesConfiguration;
 pub use users::UsersConfiguration;
 
+use std::any::Any;
 use std::error::Error;
 use serde::{Deserialize, Serialize};
 use crate::{Configuration, FileManager, JsonFile, implement_configuration};
 use serde_json::error::Result as SerdeResult;
+use crate::state::enums::system_log::SystemLog;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemConfiguration {
@@ -17,7 +19,7 @@ pub struct SystemConfiguration {
     pub hostname: String,
     pub bind: String,
     pub port: i16,
-    pub log: String,
+    pub log: SystemLog,
     pub workers: u8,
     pub token: Option<String>,
     pub frontend: Option<String>,

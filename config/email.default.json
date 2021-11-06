@@ -3,5 +3,6 @@
   "username": "",
   "password": "",
   "port": 25,
+  "encryption": "none",
   "utf8": true
 }

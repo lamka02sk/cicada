@@ -1,18 +1,17 @@
 [package]
 name = "cicada"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 [workspace]
 resolver = "2"
 members = [
     "src/common",
+    "src/core",
     "src/system"
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-actix-web = "3.3.2"
 diesel = { version = "1.4.4", features = ["postgres"] }
-dotenv = "0.15.0"
-cicada-common = { path = "./src/common" }
+cicada-core = { path = "./src/core" }
