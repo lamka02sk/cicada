@@ -17,10 +17,10 @@ use crate::state::enums::system_log::SystemLog;
 pub struct SystemConfiguration {
     pub name: String,
     pub hostname: String,
-    pub bind: String,
-    pub port: i16,
+    pub bind: Vec<String>,
+    pub port: u16,
     pub log: SystemLog,
-    pub workers: u8,
+    pub workers: usize,
     pub token: Option<String>,
     pub frontend: Option<String>,
     pub cache: CacheConfiguration,

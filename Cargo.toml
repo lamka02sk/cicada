@@ -13,5 +13,4 @@ members = [
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-diesel = { version = "1.4.4", features = ["postgres"] }
 cicada-core = { path = "./src/core" }

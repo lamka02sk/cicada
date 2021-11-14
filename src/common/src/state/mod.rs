@@ -25,7 +25,7 @@ const CONFIG_FILES: [&str; 4] = [
     "database"
 ];
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cicada {
     pub version: String,
     pub config: Arc<Mutex<HashMap<String, Box<dyn Configuration>>>>
@@ -115,16 +115,17 @@ impl Cicada {
 
 }
 
-pub trait Configuration: Debug {
-    fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized;
+pub trait Configuration: Debug + Send {
+    fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized + Send;
     fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 macro_rules! implement_configuration { ($type:ty) => {
 
     impl Configuration for $type {
 
-        fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized {
+        fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized + Send {
             let immediate: SerdeResult<Self> = serde_json::from_reader(JsonFile::new(filename).get_reader()?);
             match immediate {
                 Ok(config) => Ok(Box::new(config)),
@@ -133,6 +134,10 @@ macro_rules! implement_configuration { ($type:ty) => {
         }
 
         fn as_any(&self) -> &dyn Any {
+            self
+        }
+
+        fn as_any_mut(&mut self) -> &mut dyn Any {
             self
         }
 
