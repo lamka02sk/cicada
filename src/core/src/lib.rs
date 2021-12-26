@@ -1,20 +1,17 @@
 mod routes;
 
+#[macro_use]
+extern crate log;
+extern crate simplelog;
+
 use actix_web::{App, HttpServer};
 use actix_web::web::Data;
-use cicada_common::{Cicada, SystemConfiguration};
+use cicada_common::{Cicada, FileManager, SystemConfiguration, TextFile};
 use tera::Tera;
+use simplelog::*;
 
 #[actix_web::main]
 pub async fn start() -> std::io::Result<()> {
-
-    // Tera templates
-    let tera = match Tera::new("templates/**/*.j2") {
-        Ok(tera) => tera,
-        Err(error) => {
-            panic!("Could not compile Tera templates: {}", error);
-        }
-    };
 
     // Configuration
     let configuration = Cicada::new();
@@ -26,6 +23,33 @@ pub async fn start() -> std::io::Result<()> {
 
     let configuration = configuration.unwrap();
     let system_config: &SystemConfiguration = configuration.get("system").unwrap().as_any().downcast_ref().unwrap();
+
+    // Logging
+    match TextFile::new(&system_config.logs.file).get_writer(true) {
+        Ok(file) => {
+            match CombinedLogger::init(vec![
+                TermLogger::new(system_config.logs.level.as_level(), Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+                WriteLogger::new(system_config.logs.level.as_level(), Config::default(), file),
+            ]) {
+                Err(error) => panic!("Logging system could not be configured: {}", error),
+                _ => {}
+            };
+        },
+        Err(error) => panic!("Logging system could not be configured: {}", error)
+    };
+
+    info!("{} is starting...", system_config.name);
+    info!("Initializing HTML templating engine...");
+
+    // Tera templates
+    let tera = match Tera::new("templates/**/*.j2") {
+        Ok(tera) => tera,
+        Err(error) => {
+            panic!("Could not initialize HTML templates: {}", error);
+        }
+    };
+
+    info!("Preparing actix-web server...");
 
     // Server startup
     let mut server = HttpServer::new(move || {

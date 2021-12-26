@@ -3,13 +3,17 @@
   "hostname": "http://localhost",
   "bind": ["127.0.0.1"],
   "port": 5005,
-  "log": "info",
   "workers": 0,
   "token": null,
   "frontend": null,
+  "cors": null,
   "cache": {
     "enabled": true,
     "path": "./cache"
+  },
+  "logs": {
+    "level": "info",
+    "file": "/var/log/cicada.log"
   },
   "updates": {
     "enabled": true,

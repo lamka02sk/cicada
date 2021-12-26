@@ -1,6 +1,7 @@
 mod cache;
 mod updates;
 mod users;
+mod logs;
 
 pub use cache::CacheConfiguration;
 pub use updates::UpdatesConfiguration;
@@ -11,7 +12,7 @@ use std::error::Error;
 use serde::{Deserialize, Serialize};
 use crate::{Configuration, FileManager, JsonFile, implement_configuration};
 use serde_json::error::Result as SerdeResult;
-use crate::state::enums::system_log::SystemLog;
+use crate::state::config_system::logs::LogsConfiguration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemConfiguration {
@@ -19,11 +20,12 @@ pub struct SystemConfiguration {
     pub hostname: String,
     pub bind: Vec<String>,
     pub port: u16,
-    pub log: SystemLog,
     pub workers: usize,
     pub token: Option<String>,
     pub frontend: Option<String>,
+    pub cors: Option<Vec<String>>,
     pub cache: CacheConfiguration,
+    pub logs: LogsConfiguration,
     pub updates: UpdatesConfiguration,
     pub users: UsersConfiguration
 }

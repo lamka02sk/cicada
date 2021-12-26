@@ -6,3 +6,5 @@ target
 /config/*
 !config/**/*.default.json
 !config/repositories
+
+cicada.log

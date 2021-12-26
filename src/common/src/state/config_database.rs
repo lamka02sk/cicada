@@ -22,3 +22,32 @@ impl DatabaseConfiguration {
 }
 
 implement_configuration!(DatabaseConfiguration);
+
+#[cfg(test)]
+mod test {
+
+    use crate::{DatabaseConfiguration};
+
+    const HOST: &str = "localhost";
+    const PORT: i16 = 0;
+    const USER: &str = "user";
+    const PASS: &str = "secret";
+    const DB: &str = "schema";
+
+    fn get_sample_config() -> DatabaseConfiguration {
+        DatabaseConfiguration {
+            host: HOST.to_string(),
+            port: PORT,
+            username: USER.to_string(),
+            password: PASS.to_string(),
+            database: DB.to_string()
+        }
+    }
+
+    #[test]
+    fn generate_database_url() {
+        assert_eq!(get_sample_config().get_database_url(), String::from("postgres://") + USER + ":" + PASS + "@" + HOST + ":" + &PORT.to_string() + "/" + DB);
+    }
+
+}
+

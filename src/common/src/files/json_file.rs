@@ -60,3 +60,22 @@ impl FileManager for JsonFile {
     }
 
 }
+
+#[cfg(test)]
+mod test {
+
+    use crate::{FileManager, JsonFile};
+
+    fn get_test_file() -> JsonFile {
+        JsonFile::new("../../testfiles/file.json")
+    }
+
+    #[test]
+    fn query() {
+        let mut file = get_test_file();
+        assert!(file.parse().is_ok());
+        assert!(file.query("test").is_some());
+        assert!(file.query("x").is_none());
+    }
+
+}
