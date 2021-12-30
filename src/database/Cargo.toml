@@ -1,14 +1,11 @@
 [package]
-name = "cicada-common"
+name = "cicada-database"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-toml = "0.5.8"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
 log = "0.4.14"
-openssl = "0.10.38"
-base64 = "0.13.0"
+diesel = { version = "1.4.8", features = ["postgres", "r2d2"] }
+diesel_migrations = "1.4.0"

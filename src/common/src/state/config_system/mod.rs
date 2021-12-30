@@ -9,13 +9,17 @@ pub use users::UsersConfiguration;
 
 use std::any::Any;
 use std::error::Error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
-use crate::{Configuration, FileManager, JsonFile, implement_configuration};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration, AppError};
 use serde_json::error::Result as SerdeResult;
 use crate::state::config_system::logs::LogsConfiguration;
 
-#[derive(Debug, Serialize, Deserialize)]
+const TOKEN_STRENGTH: usize = 128;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SystemConfiguration {
+    _filename: Option<String>,
     pub name: String,
     pub hostname: String,
     pub bind: Vec<String>,
@@ -30,4 +34,70 @@ pub struct SystemConfiguration {
     pub users: UsersConfiguration
 }
 
+impl SystemConfiguration {
+
+    pub fn generate_token(&mut self) {
+
+        if self.token.is_some() {
+            return;
+        }
+
+        info!("Generating application token");
+
+        let mut random_bytes = [0; TOKEN_STRENGTH];
+        if let Err(error) = openssl::rand::rand_bytes(&mut random_bytes) {
+            error!("Application token could not be generated: {}", error);
+            panic!("Application token could not be generated: {}", error);
+        }
+
+        self.token = Some(base64::encode(&random_bytes));
+
+        if let Err(error) = self.save() {
+            error!("Application token could not be written into configuration: {}", error);
+            panic!("Application token could not be written into configuration: {}", error);
+        }
+
+    }
+
+}
+
 implement_configuration!(SystemConfiguration);
+
+#[cfg(test)]
+mod test {
+
+    use std::fs::copy;
+    use base64::decode;
+    use crate::state::config_system::TOKEN_STRENGTH;
+    use crate::SystemConfiguration;
+    use crate::state::Configuration;
+
+    fn get_config(cp: bool) -> Box<dyn Configuration> {
+
+        if cp {
+            copy("../../config/system.default.json", "../../testfiles/system_config.json");
+        }
+
+        SystemConfiguration::new("../../testfiles/system_config.json").unwrap()
+
+    }
+
+    #[test]
+    fn test_generate_token() {
+
+        let mut config = get_config(true);
+        assert!(config.as_any().downcast_ref::<SystemConfiguration>().unwrap().token.is_none());
+
+        config.as_any_mut().downcast_mut::<SystemConfiguration>().unwrap().generate_token();
+
+        let config = get_config(false);
+        assert!(config.as_any().downcast_ref::<SystemConfiguration>().unwrap().token.is_some());
+
+        let token = decode(config.as_any().downcast_ref::<SystemConfiguration>().unwrap().token.as_ref().unwrap());
+
+        assert!(token.is_ok());
+        assert_eq!(token.unwrap().len(), TOKEN_STRENGTH);
+
+    }
+
+}

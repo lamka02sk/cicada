@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::fs::copy;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use crate::AppError;
 use super::{TomlFile, FileManager};
 
 mod config_database;
@@ -75,7 +76,7 @@ impl Cicada {
 
         }
 
-        CONFIG_FILES.iter().fold(HashMap::new(), |acc, &config| {
+        let mut configs = CONFIG_FILES.iter().fold(HashMap::new(), |acc, &config| {
 
             let filename = get_filename(config);
             prepare_configuration_file(&filename);
@@ -96,7 +97,13 @@ impl Cicada {
             acc.insert(config.to_string(), configuration.unwrap());
             acc
 
-        })
+        });
+
+        // Generate token
+        let system_config = configs.get_mut("system").unwrap().as_any_mut().downcast_mut::<SystemConfiguration>().unwrap();
+        system_config.generate_token();
+
+        configs
 
     }
 
@@ -117,6 +124,7 @@ impl Cicada {
 
 pub trait Configuration: Debug + Send {
     fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized + Send;
+    fn save(&self) -> Result<(), AppError>;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -128,9 +136,33 @@ macro_rules! implement_configuration { ($type:ty) => {
         fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized + Send {
             let immediate: SerdeResult<Self> = serde_json::from_reader(JsonFile::new(filename).get_reader()?);
             match immediate {
-                Ok(config) => Ok(Box::new(config)),
+                Ok(config) => {
+                    let mut config = config;
+                    config._filename = Some(filename.to_string());
+                    Ok(Box::new(config))
+                },
                 Err(error) => Err(Box::new(error))
             }
+        }
+
+        fn save(&self) -> Result<(), AppError> {
+
+            let filename = match self._filename.as_ref() {
+                Some(filename) => filename,
+                None => return Err(AppError::new("cfg_persist_filename", &format!("Filename is not set on {} struct.", std::any::type_name::<$type>())))
+            };
+
+            let writer = match JsonFile::new(&filename).get_writer(false) {
+                Ok(writer) => writer,
+                Err(error) => return Err(AppError::new("cfg_persist_writer", &format!("Could not open configuration at {}: {}.", filename, error)))
+            };
+
+            if let Err(error) = serde_json::to_writer_pretty(writer, &self) {
+                return Err(AppError::new("cfg_persist_flush", &format!("Could not save configuration at {}: {}.", filename, error)));
+            }
+
+            Ok(())
+
         }
 
         fn as_any(&self) -> &dyn Any {

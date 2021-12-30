@@ -1,11 +1,12 @@
 use std::any::Any;
 use std::error::Error;
-use crate::{Configuration, FileManager, JsonFile, implement_configuration};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration, AppError};
 use serde::{Deserialize, Serialize};
 use serde_json::error::Result as SerdeResult;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DatabaseConfiguration {
+    _filename: Option<String>,
     pub host: String,
     pub port: i16,
     pub username: String,
@@ -36,6 +37,7 @@ mod test {
 
     fn get_sample_config() -> DatabaseConfiguration {
         DatabaseConfiguration {
+            _filename: None,
             host: HOST.to_string(),
             port: PORT,
             username: USER.to_string(),

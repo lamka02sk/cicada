@@ -6,10 +6,12 @@ extern crate simplelog;
 
 use actix_cors::Cors;
 use actix_web::{App, http, HttpServer};
+use actix_web::middleware::Logger;
 use actix_web::web::Data;
-use cicada_common::{Cicada, FileManager, SystemConfiguration, TextFile};
+use cicada_common::{Cicada, DatabaseConfiguration, FileManager, SystemConfiguration, TextFile};
 use tera::Tera;
 use simplelog::*;
+use cicada_database::{ConnectionPool, run_migrations};
 
 #[actix_web::main]
 pub async fn start() -> std::io::Result<()> {
@@ -19,30 +21,39 @@ pub async fn start() -> std::io::Result<()> {
     let configuration = configuration.config.lock();
 
     if let Err(error) = configuration {
-        panic!("Could not lock the application data for http server setup: {}", error);
+        panic!("Could not lock the application data before server setup: {}", error);
     }
 
     let configuration = configuration.unwrap();
     let system_config: &SystemConfiguration = configuration.get("system").unwrap().as_any().downcast_ref().unwrap();
+    let database_config: &DatabaseConfiguration = configuration.get("database").unwrap().as_any().downcast_ref().unwrap();
 
+    // Logging
     initialize_logging(&system_config);
 
-    info!("{} is starting...", system_config.name);
-    info!("Initializing HTML templating engine...");
-
     // Tera templates
+    info!("Initializing HTML templating engine...");
     let tera = initialize_templating();
 
-    info!("Preparing actix-web server...");
+    // Database connection pool
+    info!("Preparing database connection pool...");
+    let pool  = ConnectionPool::new(&database_config.get_database_url());
 
-    let cors = system_config.cors.clone();
+    // Run database migrations
+    info!("Running database migrations...");
+    run_migrations(&pool);
 
     // Server startup
+    info!("Preparing actix-web server...");
+    let cors = system_config.cors.clone();
+
     let mut server = HttpServer::new(move || {
         App::new()
             .wrap(get_cors_middleware(cors.clone()))
+            .wrap(Logger::new("%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %D"))
             .app_data(Data::new(Cicada::new()))
             .app_data(Data::new(tera.clone()))
+            .app_data(Data::new(pool.clone()))
             .configure(routes::configure)
     });
 
@@ -61,6 +72,7 @@ pub async fn start() -> std::io::Result<()> {
 }
 
 fn initialize_logging(system_config: &SystemConfiguration) {
+
     match TextFile::new(&system_config.logs.file).get_writer(true) {
         Ok(file) => {
             match CombinedLogger::init(vec![
@@ -73,6 +85,9 @@ fn initialize_logging(system_config: &SystemConfiguration) {
         },
         Err(error) => panic!("Logging system could not be configured: {}", error)
     };
+
+    info!("{} is starting...", system_config.name);
+
 }
 
 fn initialize_templating() -> Tera {

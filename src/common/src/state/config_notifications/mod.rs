@@ -7,11 +7,12 @@ pub use slack::SlackNotificationsConfiguration;
 use std::any::Any;
 use std::error::Error;
 use serde::{Deserialize, Serialize};
-use crate::{Configuration, FileManager, JsonFile, implement_configuration};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration, AppError};
 use serde_json::error::Result as SerdeResult;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NotificationsConfiguration {
+    _filename: Option<String>,
     pub email: EmailNotificationsConfiguration,
     pub slack: SlackNotificationsConfiguration
 }

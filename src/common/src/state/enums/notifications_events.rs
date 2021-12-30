@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq, Clone)]
 pub enum NotificationsEvents {
     #[serde(rename = "auth:login")]
     AuthLogin,
