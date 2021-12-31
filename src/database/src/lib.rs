@@ -1,5 +1,7 @@
 mod models;
 mod schema;
+
+use std::io;
 pub use models::*;
 
 #[macro_use]
@@ -9,13 +11,13 @@ extern crate diesel_migrations;
 extern crate diesel;
 extern crate uuid;
 
-use std::io;
-use diesel::PgConnection;
+use diesel::{PgConnection, QueryResult};
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
 use log::error;
 
 embed_migrations!();
 pub type Connection = PooledConnection<ConnectionManager<PgConnection>>;
+pub type ConnectionResult = Result<Connection, PoolError>;
 pub type DbPool = diesel::r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Clone)]
@@ -37,7 +39,7 @@ impl ConnectionPool {
 
     }
 
-    pub fn get_connection(&self) -> Result<Connection, PoolError> {
+    pub fn get_connection(&self) -> ConnectionResult {
         self.0.get()
     }
 
@@ -58,4 +60,13 @@ pub fn run_migrations(pool: &ConnectionPool) {
         panic!("Database migrations failed: {}", error);
     }
 
+}
+
+pub type DbResult<T> = Result<T, String>;
+
+pub fn result<T>(result: QueryResult<T>) -> DbResult<T> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(error) => Err(error.to_string())
+    }
 }

@@ -7,6 +7,7 @@ table! {
         email -> Varchar,
         password -> Varchar,
         token -> Varchar,
+        admin -> Bool,
         enabled -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,

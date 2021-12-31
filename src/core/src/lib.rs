@@ -6,7 +6,8 @@ extern crate simplelog;
 
 use actix_cors::Cors;
 use actix_web::{App, http, HttpServer};
-use actix_web::middleware::Logger;
+use actix_web::middleware::{Logger, NormalizePath};
+use actix_web::middleware::normalize::TrailingSlash;
 use actix_web::web::Data;
 use cicada_common::{Cicada, DatabaseConfiguration, FileManager, SystemConfiguration, TextFile};
 use tera::Tera;
@@ -51,6 +52,7 @@ pub async fn start() -> std::io::Result<()> {
         App::new()
             .wrap(get_cors_middleware(cors.clone()))
             .wrap(Logger::new("%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %D"))
+            .wrap(NormalizePath::new(TrailingSlash::Trim))
             .app_data(Data::new(Cicada::new()))
             .app_data(Data::new(tera.clone()))
             .app_data(Data::new(pool.clone()))

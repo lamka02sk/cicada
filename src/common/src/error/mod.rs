@@ -12,6 +12,20 @@ pub struct CicadaError {
     pub message: String
 }
 
+impl CicadaError {
+
+    pub fn new(code: u16, message: &str) -> CicadaResponse {
+        Err(CicadaError {
+            code, message: message.to_string()
+        })
+    }
+
+    pub fn internal(message: &str) -> CicadaResponse {
+        Self::new(500, message)
+    }
+
+}
+
 impl Display for CicadaError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error {}: {}", self.code, self.message)

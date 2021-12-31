@@ -7,6 +7,7 @@ create table users
     email      varchar(128)                        not null,
     password   varchar(64)                         not null,
     token      varchar(128)                        not null,
+    admin      boolean   default false             not null,
     enabled    boolean   default false             not null,
     created_at timestamp default current_timestamp not null,
     updated_at timestamp default current_timestamp not null

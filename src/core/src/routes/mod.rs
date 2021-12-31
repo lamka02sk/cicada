@@ -72,6 +72,8 @@ fn error_response(error: CicadaError) -> HttpResponse {
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR
     };
 
+    error!("{}", error.message);
+
     HttpResponseBuilder::new(status_code)
         .content_type("application/json")
         .json(json!({
