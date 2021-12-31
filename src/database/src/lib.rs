@@ -1,5 +1,13 @@
+mod models;
+mod schema;
+pub use models::*;
+
 #[macro_use]
 extern crate diesel_migrations;
+
+#[macro_use]
+extern crate diesel;
+extern crate uuid;
 
 use std::io;
 use diesel::PgConnection;
@@ -34,7 +42,6 @@ impl ConnectionPool {
     }
 
 }
-
 
 pub fn run_migrations(pool: &ConnectionPool) {
 

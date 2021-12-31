@@ -2,6 +2,7 @@
 target
 *.local
 .idea
+.env
 
 /config/*
 !config/**/*.default.json
