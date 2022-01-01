@@ -149,16 +149,16 @@ macro_rules! implement_configuration { ($type:ty) => {
 
             let filename = match self._filename.as_ref() {
                 Some(filename) => filename,
-                None => return Err(AppError::new("cfg_persist_filename", &format!("Filename is not set on {} struct.", std::any::type_name::<$type>())))
+                None => return AppError::new("cfg_persist_filename", &format!("Filename is not set on {} struct.", std::any::type_name::<$type>()))
             };
 
             let writer = match JsonFile::new(&filename).get_writer(false) {
                 Ok(writer) => writer,
-                Err(error) => return Err(AppError::new("cfg_persist_writer", &format!("Could not open configuration at {}: {}.", filename, error)))
+                Err(error) => return AppError::new("cfg_persist_writer", &format!("Could not open configuration at {}: {}.", filename, error))
             };
 
             if let Err(error) = serde_json::to_writer_pretty(writer, &self) {
-                return Err(AppError::new("cfg_persist_flush", &format!("Could not save configuration at {}: {}.", filename, error)));
+                return AppError::new("cfg_persist_flush", &format!("Could not save configuration at {}: {}.", filename, error));
             }
 
             Ok(())

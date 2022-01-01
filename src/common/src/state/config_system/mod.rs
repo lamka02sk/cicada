@@ -13,6 +13,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use crate::{Configuration, FileManager, JsonFile, implement_configuration, AppError};
 use serde_json::error::Result as SerdeResult;
+use crate::crypto::random::token;
 use crate::state::config_system::logs::LogsConfiguration;
 
 const TOKEN_STRENGTH: usize = 128;
@@ -44,13 +45,13 @@ impl SystemConfiguration {
 
         info!("Generating application token");
 
-        let mut random_bytes = [0; TOKEN_STRENGTH];
-        if let Err(error) = openssl::rand::rand_bytes(&mut random_bytes) {
-            error!("Application token could not be generated: {}", error);
-            panic!("Application token could not be generated: {}", error);
-        }
-
-        self.token = Some(base64::encode(&random_bytes));
+        self.token = match token(TOKEN_STRENGTH) {
+            Ok(token) => Some(token),
+            Err(error) => {
+                error!("Application token could not be generated: {}", error);
+                panic!("Application token could not be generated: {}", error);
+            }
+        };
 
         if let Err(error) = self.save() {
             error!("Application token could not be written into configuration: {}", error);

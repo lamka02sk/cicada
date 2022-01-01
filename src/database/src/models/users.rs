@@ -1,10 +1,14 @@
 use chrono::NaiveDateTime;
-use diesel::{Queryable, Insertable, Identifiable, QueryDsl, ExpressionMethods, RunQueryDsl, select};
+use diesel::{Queryable, Insertable, Identifiable, QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into};
 use diesel::dsl::exists;
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
-use crate::{Connection, DbResult, result};
+use cicada_common::CicadaResult;
+use cicada_common::crypto::random::token;
+use crate::{ConnectionPool, DbResult, get_connection, result, result_any};
 use crate::schema::users;
+
+const TOKEN_STRENGTH: usize = 96;
 
 #[derive(Debug, Queryable, Serialize)]
 pub struct User {
@@ -21,7 +25,16 @@ pub struct User {
     pub updated_at: NaiveDateTime
 }
 
-#[derive(Debug, Insertable, Identifiable, Deserialize)]
+impl User {
+
+    pub fn exists_admin(db: &ConnectionPool) -> DbResult<bool> {
+        let conn = get_connection(db)?;
+        result(select(exists(users::dsl::users.filter(users::dsl::admin.eq(true)))).get_result::<bool>(&conn))
+    }
+
+}
+
+#[derive(Debug, Identifiable, Deserialize)]
 #[table_name = "users"]
 pub struct FormUser<'a> {
     id: i32,
@@ -35,10 +48,34 @@ pub struct FormUser<'a> {
     pub enabled: bool
 }
 
-impl User {
+#[derive(Debug, Insertable, Deserialize)]
+#[table_name = "users"]
+pub struct NewUser {
+    pub firstname: String,
+    pub lastname: String,
+    pub email: String,
+    password: String,
+    token: String,
+    admin: bool,
+    enabled: bool
+}
 
-    pub fn exists_admin(conn: &Connection) -> DbResult<bool> {
-        result(select(exists(users::dsl::users.filter(users::dsl::admin.eq(true)))).get_result::<bool>(conn))
+impl NewUser {
+
+    pub fn create(&mut self, db: &ConnectionPool, admin: bool) -> CicadaResult<String> {
+
+        let conn = get_connection(db)?;
+
+        self.token = Self::generate_token()?;
+        self.admin = admin;
+        self.enabled = true;
+
+        result_any(insert_into(users::dsl::users).values(&*self).execute(&conn))
+
+    }
+
+    fn generate_token() -> CicadaResult<String> {
+        token(TOKEN_STRENGTH)
     }
 
 }

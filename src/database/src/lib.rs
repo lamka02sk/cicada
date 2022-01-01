@@ -14,6 +14,7 @@ extern crate uuid;
 use diesel::{PgConnection, QueryResult};
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection, PoolError};
 use log::error;
+use cicada_common::{AppError, CicadaResult};
 
 embed_migrations!();
 pub type Connection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -62,11 +63,25 @@ pub fn run_migrations(pool: &ConnectionPool) {
 
 }
 
-pub type DbResult<T> = Result<T, String>;
+pub type DbResult<T> = Result<T, AppError>;
 
 pub fn result<T>(result: QueryResult<T>) -> DbResult<T> {
     match result {
         Ok(value) => Ok(value),
-        Err(error) => Err(error.to_string())
+        Err(error) => AppError::new("db_query", &error.to_string())
+    }
+}
+
+pub fn result_any<T: Default, U>(result: QueryResult<U>) -> DbResult<T> {
+    match result {
+        Ok(_) => Ok(T::default()),
+        Err(error) => AppError::new("db_query", &error.to_string())
+    }
+}
+
+pub fn get_connection(db: &ConnectionPool) -> CicadaResult<Connection> {
+    match db.get_connection() {
+        Ok(connection) => Ok(connection),
+        Err(error) => AppError::new("db_conn", &error.to_string())
     }
 }

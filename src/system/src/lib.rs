@@ -1,18 +1,22 @@
-use serde_json::json;
+use serde_json::{json, Value};
 use cicada_common::{CicadaError, CicadaResponse};
-use cicada_database::{ConnectionPool, User};
+use cicada_database::{ConnectionPool, NewUser, User};
 
 pub fn get_status(db: &ConnectionPool) -> CicadaResponse {
+    Ok(json!({
+        "ready": User::exists_admin(&db)?
+    }))
+}
 
-    if let Err(error) = db.get_connection() {
-        return CicadaError::internal(&error.to_string());
+pub fn create_admin_account(db: &ConnectionPool, user: &mut NewUser) -> CicadaResponse {
+
+    if User::exists_admin(&db)? {
+        return CicadaError::forbidden("Administrator user already exists");
     }
 
-    Ok(json!({
-        "ready": match User::exists_admin(&db.get_connection().unwrap()) {
-            Ok(ready) => ready,
-            Err(error) => return CicadaError::internal(&error)
-        }
-    }))
+    match user.create(&db, true) {
+        Ok(_) => Ok(Value::Null),
+        Err(error) => error.into()
+    }
 
 }
