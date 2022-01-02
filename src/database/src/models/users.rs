@@ -4,6 +4,7 @@ use diesel::dsl::exists;
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 use cicada_common::CicadaResult;
+use cicada_common::crypto::password::hash_password;
 use cicada_common::crypto::random::token;
 use crate::{ConnectionPool, DbResult, get_connection, result, result_any};
 use crate::schema::users;
@@ -66,7 +67,9 @@ impl NewUser {
 
         let conn = get_connection(db)?;
 
-        self.token = Self::generate_token()?;
+        self.token = self.generate_token()?;
+        self.password = self.hash_password()?;
+
         self.admin = admin;
         self.enabled = true;
 
@@ -74,8 +77,12 @@ impl NewUser {
 
     }
 
-    fn generate_token() -> CicadaResult<String> {
+    fn generate_token(&self) -> CicadaResult<String> {
         token(TOKEN_STRENGTH)
+    }
+
+    fn hash_password(&mut self) -> CicadaResult<String> {
+        hash_password(&self.password)
     }
 
 }

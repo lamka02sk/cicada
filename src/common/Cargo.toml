@@ -12,3 +12,6 @@ serde_json = "1.0.68"
 log = "0.4.14"
 openssl = "0.10.38"
 base64 = "0.13.0"
+ring = "0.16.20"
+argon2 = "0.3.2"
+rand_core = { version = "0.6.3", features = ["std"] }

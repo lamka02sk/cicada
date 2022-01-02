@@ -35,3 +35,8 @@ fn status(db: Data<ConnectionPool>) -> HttpResponse {
 fn create_admin_account(db: Data<ConnectionPool>, mut user: web::Json<NewUser>) -> HttpResponse {
     json_response(cicada_system::create_admin_account(db.as_ref(), &mut user))
 }
+
+// #[post("/auth/login")]
+// fn login(db: Data<ConnectionPool>, mut login: web::Json<Login>) -> HttpResponse {
+//     json_response(cicada_system::auth::login(db.as_ref(), &mut login))
+// }
