@@ -8,7 +8,8 @@ edition = "2021"
 [dependencies]
 log = "0.4.14"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-diesel = { version = "1.4.8", features = ["postgres", "r2d2", "uuidv07", "chrono"] }
+diesel = { version = "1.4.8", features = ["postgres", "r2d2", "uuidv07", "chrono", "network-address"] }
+ipnetwork = "0.18.0"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = "1.0.130"

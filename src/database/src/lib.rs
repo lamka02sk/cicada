@@ -8,7 +8,11 @@ pub use models::*;
 extern crate diesel_migrations;
 
 #[macro_use]
+extern crate serde;
+
+#[macro_use]
 extern crate diesel;
+
 extern crate uuid;
 
 use diesel::{PgConnection, QueryResult};

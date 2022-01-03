@@ -7,7 +7,7 @@ use actix_web::web::ServiceConfig;
 use serde_json::json;
 use serde_json::Value::Null;
 use tera::{Context, Tera};
-use cicada_common::{Cicada, CicadaError, CicadaResponse, SystemConfiguration};
+use cicada_common::{AppError, Cicada, CicadaError, CicadaResponse, CicadaResult, SystemConfiguration};
 
 pub fn configure(config: &mut ServiceConfig) {
 
@@ -84,6 +84,29 @@ fn error_response(error: CicadaError) -> HttpResponse {
         }))
 
 }
+
+macro_rules! not_auth { ($auth:expr) => {
+
+    let auth_login: Option<AuthLogin> = $auth.clone().into();
+
+    if let Some(_) = auth_login {
+        return error_response(CicadaError::forbidden("This route cannot be authenticated").err().unwrap())
+    }
+
+}}
+
+macro_rules! only_auth { ($auth:expr) => {
+
+    let auth_login: Option<AuthLogin> = $auth.clone().into();
+
+    if let None = auth_login {
+        return error_response(CicadaError::forbidden("This route requires authentication").err().unwrap())
+    }
+
+}}
+
+pub(crate) use not_auth;
+pub(crate) use only_auth;
 
 #[cfg(test)]
 mod test {

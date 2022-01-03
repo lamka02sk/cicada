@@ -5,7 +5,7 @@ create table users
     firstname  varchar(64)                         not null,
     lastname   varchar(64)                         not null,
     email      varchar(128)                        not null,
-    password   varchar(96)                         not null,
+    password   varchar(128)                        not null,
     token      varchar(128)                        not null,
     admin      boolean   default false             not null,
     enabled    boolean   default false             not null,

@@ -1,4 +1,9 @@
 mod routes;
+mod extractors;
+mod middleware;
+
+#[macro_use]
+extern crate serde;
 
 #[macro_use]
 extern crate log;
@@ -13,6 +18,7 @@ use cicada_common::{Cicada, DatabaseConfiguration, FileManager, SystemConfigurat
 use tera::Tera;
 use simplelog::*;
 use cicada_database::{ConnectionPool, run_migrations};
+use crate::middleware::auth::AuthenticateMiddlewareFactory;
 
 #[actix_web::main]
 pub async fn start() -> std::io::Result<()> {
@@ -50,6 +56,7 @@ pub async fn start() -> std::io::Result<()> {
 
     let mut server = HttpServer::new(move || {
         App::new()
+            .wrap(AuthenticateMiddlewareFactory::new())
             .wrap(get_cors_middleware(cors.clone()))
             .wrap(Logger::new("%a %t \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %D"))
             .wrap(NormalizePath::new(TrailingSlash::Trim))

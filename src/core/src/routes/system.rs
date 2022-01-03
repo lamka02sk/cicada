@@ -3,8 +3,10 @@ use actix_web::web::Data;
 use tera::Tera;
 use serde_json::Value;
 use cicada_common::Cicada;
-use cicada_database::{ConnectionPool, NewUser};
-use crate::routes::{empty_route, html_response, json_response};
+use cicada_database::{AuthLogin, ConnectionPool, LoginForm, NewUser};
+use crate::extractors::Headers;
+use crate::middleware::auth::Auth;
+use crate::routes::*;
 
 pub fn register_service() -> Scope {
 
@@ -13,6 +15,8 @@ pub fn register_service() -> Scope {
         .service(ping)
         .service(status)
         .service(create_admin_account)
+        .service(login)
+        .service(check_login)
 
 }
 
@@ -32,11 +36,19 @@ fn status(db: Data<ConnectionPool>) -> HttpResponse {
 }
 
 #[post("/setup/create-admin-account")]
-fn create_admin_account(db: Data<ConnectionPool>, mut user: web::Json<NewUser>) -> HttpResponse {
+fn create_admin_account(db: Data<ConnectionPool>, auth: Auth, mut user: web::Json<NewUser>) -> HttpResponse {
+    not_auth!(auth);
     json_response(cicada_system::create_admin_account(db.as_ref(), &mut user))
 }
 
-// #[post("/auth/login")]
-// fn login(db: Data<ConnectionPool>, mut login: web::Json<Login>) -> HttpResponse {
-//     json_response(cicada_system::auth::login(db.as_ref(), &mut login))
-// }
+#[post("/auth/login")]
+fn login(headers: Headers, auth: Auth, db: Data<ConnectionPool>, mut login: web::Json<LoginForm>) -> HttpResponse {
+    not_auth!(auth);
+    json_response(cicada_system::auth::login(headers.into(), db.as_ref(), &mut login))
+}
+
+#[get("/auth/check")]
+fn check_login(auth: Auth) -> HttpResponse {
+    only_auth!(auth);
+    json_response(empty_route())
+}

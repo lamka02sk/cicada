@@ -76,7 +76,7 @@ mod test {
     fn get_config(cp: bool) -> Box<dyn Configuration> {
 
         if cp {
-            copy("../../config/system.default.json", "../../testfiles/system_config.json");
+            copy("../../config/system.default.json", "../../testfiles/system_config.json").unwrap();
         }
 
         SystemConfiguration::new("../../testfiles/system_config.json").unwrap()
