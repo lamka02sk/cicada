@@ -11,7 +11,7 @@ use std::any::Any;
 use std::error::Error;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use crate::{Configuration, FileManager, JsonFile, implement_configuration, AppError};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration, CicadaResult, AppError};
 use serde_json::error::Result as SerdeResult;
 use crate::crypto::random::token;
 use crate::state::config_system::logs::LogsConfiguration;

@@ -4,7 +4,8 @@ use std::task::{Context, Poll};
 use actix_web::dev::{ServiceRequest, ServiceResponse, Transform, Service};
 use actix_web::{Error, FromRequest, HttpMessage};
 use actix_web::web::Data;
-use cicada_database::{AuthLogin, ConnectionPool};
+use cicada_database::auth::login::AuthLogin;
+use cicada_database::ConnectionPool;
 
 pub struct AuthenticateMiddleware<S> {
     service: S,

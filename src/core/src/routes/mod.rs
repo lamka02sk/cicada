@@ -7,7 +7,7 @@ use actix_web::web::ServiceConfig;
 use serde_json::json;
 use serde_json::Value::Null;
 use tera::{Context, Tera};
-use cicada_common::{AppError, Cicada, CicadaError, CicadaResponse, CicadaResult, SystemConfiguration};
+use cicada_common::{AppError, Cicada, CicadaError, CicadaErrorKind, CicadaHttpError, CicadaResponse, CicadaResult, SystemConfiguration};
 
 pub fn configure(config: &mut ServiceConfig) {
 
@@ -37,10 +37,14 @@ fn html_response(data: CicadaResponse, tera: (&Tera, &Cicada, &str)) -> HttpResp
     let html = tera.0.render(tera.2, &context);
 
     if let Err(error) = html {
-        return error_response(CicadaError {
-            code: 500,
-            message: error.to_string()
-        })
+        return error_response(CicadaErrorKind::Public(CicadaError {
+            http: Some(CicadaHttpError {
+                code: 500,
+                message: Some(error.to_string())
+            }),
+            custom: None,
+            source: None
+        }))
     }
 
     HttpResponseBuilder::new(StatusCode::OK)
@@ -65,14 +69,15 @@ fn json_response(data: CicadaResponse) -> HttpResponse {
 
 }
 
-fn error_response(error: CicadaError) -> HttpResponse {
+fn error_response(error: CicadaErrorKind) -> HttpResponse {
 
-    let status_code = match StatusCode::from_u16(error.code) {
-        Ok(code) => code,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR
-    };
+    let status_code = StatusCode::INTERNAL_SERVER_ERROR;
+    // let status_code = match StatusCode::from_u16(error.code) {
+    //     Ok(code) => code,
+    //     Err(_) =>
+    // };
 
-    error!("{}", error.message);
+    // error!("{}", error.message);
 
     HttpResponseBuilder::new(status_code)
         .content_type("application/json")
@@ -90,7 +95,7 @@ macro_rules! not_auth { ($auth:expr) => {
     let auth_login: Option<AuthLogin> = $auth.clone().into();
 
     if let Some(_) = auth_login {
-        return error_response(CicadaError::forbidden("This route cannot be authenticated").err().unwrap())
+        return error_response(CicadaError::http::<()>(403, Some("This route cannot be authenticated")).err().unwrap())
     }
 
 }}
@@ -100,7 +105,7 @@ macro_rules! only_auth { ($auth:expr) => {
     let auth_login: Option<AuthLogin> = $auth.clone().into();
 
     if let None = auth_login {
-        return error_response(CicadaError::forbidden("This route requires authentication").err().unwrap())
+        return error_response(CicadaError::http::<()>(403, Some("This route requires authentication")).err().unwrap())
     }
 
 }}

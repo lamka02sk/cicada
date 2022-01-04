@@ -1,11 +1,11 @@
 use chrono::NaiveDateTime;
-use diesel::{Queryable, Insertable, Identifiable, QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into, BoolExpressionMethods};
+use diesel::{Queryable, Insertable, Identifiable, QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into};
 use diesel::dsl::exists;
 use uuid::Uuid;
 use cicada_common::CicadaResult;
 use cicada_common::crypto::password::{hash_password, verify_password};
 use cicada_common::crypto::random::token;
-use crate::{ConnectionPool, DbResult, get_connection, LoginForm, result, result_any};
+use crate::{ConnectionPool, DbResult, get_connection, result, result_any};
 use crate::schema::users;
 
 const TOKEN_STRENGTH: usize = 96;

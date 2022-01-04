@@ -13,12 +13,12 @@ pub fn get_status(db: &ConnectionPool) -> CicadaResponse {
 pub fn create_admin_account(db: &ConnectionPool, user: &mut NewUser) -> CicadaResponse {
 
     if User::exists_admin(&db)? {
-        return CicadaError::forbidden("Administrator user already exists");
+        return CicadaError::http(403, Some("Administrator user already exists"));
     }
 
     match user.create(&db, true) {
         Ok(_) => Ok(Value::Null),
-        Err(error) => error.into()
+        Err(error) => Err(error)
     }
 
 }

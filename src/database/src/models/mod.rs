@@ -1,7 +1,6 @@
 mod users;
-mod login;
 mod headers;
+pub mod auth;
 
 pub use users::*;
-pub use login::*;
 pub use headers::*;

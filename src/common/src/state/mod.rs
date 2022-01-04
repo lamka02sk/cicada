@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use std::fs::copy;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use crate::AppError;
+use crate::{AppError, CicadaResult};
 use super::{TomlFile, FileManager};
 
 mod config_database;
@@ -124,7 +124,7 @@ impl Cicada {
 
 pub trait Configuration: Debug + Send {
     fn new(filename: &str) -> Result<Box<dyn Configuration>, Box<dyn Error>> where Self: Sized + Send;
-    fn save(&self) -> Result<(), AppError>;
+    fn save(&self) -> CicadaResult<()>;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -145,7 +145,7 @@ macro_rules! implement_configuration { ($type:ty) => {
             }
         }
 
-        fn save(&self) -> Result<(), AppError> {
+        fn save(&self) -> CicadaResult<()> {
 
             let filename = match self._filename.as_ref() {
                 Some(filename) => filename,
