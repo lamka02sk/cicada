@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use diesel::{Queryable, Insertable, Identifiable, QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into};
+use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into};
 use diesel::dsl::exists;
 use uuid::Uuid;
 use cicada_common::CicadaResult;

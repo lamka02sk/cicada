@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use cicada_common::{AppError, CicadaResult};
+use cicada_common::{CicadaError, CicadaResult};
 use crate::{ConnectionPool, User};
 use crate::auth::attempts::AuthAttempt;
 
@@ -19,7 +19,7 @@ impl LoginForm {
         let user = User::from_email(db, &self.email)?;
 
         if AuthAttempt::count(db, &user, LOGIN_COOLDOWN_MINUTES)? > LOGIN_COOLDOWN_ATTEMPTS {
-            return AppError::new("auth_attempts_limit", &format!("The limit of login attempts was exceeded for user ({})", user.uuid));
+            return CicadaError::too_many_requests(format!("The limit of login attempts was exceeded for user ({})", user.uuid).into());
         }
 
         if let Err(error) = user.verify_password(&self.password) {

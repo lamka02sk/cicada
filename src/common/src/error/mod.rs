@@ -1,13 +1,44 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::sync::Mutex;
-use log::error;
+use log::{error, info, warn};
 use serde_json::Value;
 
 #[derive(Debug)]
 pub enum CicadaErrorKind {
     Hidden(CicadaError),
     Public(CicadaError)
+}
+
+impl CicadaErrorKind {
+
+    pub fn get_http_code(&self) -> Option<u16> {
+        match self {
+            CicadaErrorKind::Hidden(value) => value.get_http_code(),
+            CicadaErrorKind::Public(value) => value.get_http_code(),
+        }
+    }
+
+    pub fn get_http_message(&self) -> Option<String> {
+        match self {
+            CicadaErrorKind::Hidden(value) => value.get_http_message(),
+            CicadaErrorKind::Public(value) => value.get_http_message(),
+        }
+    }
+
+}
+
+#[derive(Debug)]
+pub enum CicadaErrorLog {
+    None,
+    Info,
+    Warn,
+    Error
+}
+
+#[derive(Debug)]
+pub enum CicadaHttpLog {
+    Default,
+    Custom(String)
 }
 
 #[derive(Debug)]
@@ -19,12 +50,12 @@ pub struct CicadaCustomError {
 #[derive(Debug)]
 pub struct CicadaHttpError {
     pub code: u16,
-    pub message: Option<String>
+    pub message: CicadaHttpLog
 }
 
 #[derive(Debug)]
 pub struct CicadaError {
-    // pub kind: CicadaErrorKind,
+    pub log: CicadaErrorLog,
     pub http: Option<CicadaHttpError>,
     pub custom: Option<CicadaCustomError>,
     pub source: Option<Box<dyn Error>>
@@ -32,53 +63,123 @@ pub struct CicadaError {
 
 impl CicadaError {
 
-    pub fn new<T>(identifier: &str, description: &str) -> CicadaResult<T> {
+    pub fn log(&self, message: &str) {
+        match &self.log {
+            CicadaErrorLog::Info => info!("{}", message),
+            CicadaErrorLog::Warn => warn!("{}", message),
+            CicadaErrorLog::Error => error!("{}", message),
+            _ => {}
+        }
+    }
+
+    pub fn get_http_code(&self) -> Option<u16> {
+
+        if let None = self.http {
+            return None;
+        }
+
+        Some(self.http.as_ref().unwrap().code)
+
+    }
+
+    pub fn get_http_message(&self) -> Option<String> {
+
+        if let None = self.http {
+            return None;
+        }
+
+        match &self.http.as_ref().unwrap().message {
+            CicadaHttpLog::Default => None,
+            CicadaHttpLog::Custom(message) => Some(message.to_string())
+        }
+
+    }
+
+    pub fn make_public<T>(result: CicadaResult<T>) ->  CicadaResult<T> {
+
+        if let Err(error) = result {
+            return Err(match error {
+                CicadaErrorKind::Hidden(error) => CicadaErrorKind::Public(error),
+                CicadaErrorKind::Public(error) => CicadaErrorKind::Public(error)
+            });
+        }
+
+        result
+
+    }
+
+    pub fn with_log<T>(log: CicadaErrorLog, result: CicadaResult<T>) ->  CicadaResult<T> {
+
+        if let Err(error) = result {
+            return Err(match error {
+                CicadaErrorKind::Hidden(error) => {
+                    let mut error = error;
+                    error.log = log;
+                    CicadaErrorKind::Hidden(error)
+                },
+                CicadaErrorKind::Public(error) => {
+                    let mut error = error;
+                    error.log = log;
+                    CicadaErrorKind::Public(error)
+                }
+            });
+        }
+
+        result
+
+    }
+
+    pub fn new<T>(log: CicadaErrorLog, http: Option<CicadaHttpError>, custom: Option<CicadaCustomError>, source: Option<Box<dyn Error>>) -> CicadaResult<T> {
         Err(CicadaErrorKind::Hidden(CicadaError {
-            // kind: CicadaErrorKind::Hidden,
-            http: Some(CicadaHttpError {
-                code: 500,
-                message: None
-            }),
-            custom: Some(CicadaCustomError {
-                identifier: identifier.to_string(),
-                description: description.to_string()
-            }),
-            source: None
+            log, http, custom, source
         }))
     }
 
-    // fn _http<T>(kind: CicadaErrorKind, code: u16, message: Option<&str>) -> CicadaResult<T> {
-    //     Err(CicadaError {
-    //         kind,
-    //         http: Some(CicadaHttpError {
-    //             code,
-    //             message: match message {
-    //                 Some(message) => Some(message.to_string()),
-    //                 _ => None
-    //             }
-    //         }),
-    //         custom: None,
-    //         source: None
-    //     })
-    // }
+    pub fn log_http<T>(log: CicadaErrorLog, code: u16, message: CicadaHttpLog) -> CicadaResult<T> {
+        CicadaError::new(log, Some(CicadaHttpError {
+            code, message
+        }), None, None)
+    }
 
-    // pub fn pub_http<T>(code: u16, message: Option<&str>) -> CicadaResult<T> {
-    //     CicadaError::_http(CicadaErrorKind::Public, code, message)
-    // }
+    pub fn http<T>(code: u16, message: CicadaHttpLog) -> CicadaResult<T> {
+        CicadaError::log_http(CicadaErrorLog::None, code, message)
+    }
 
-    pub fn http<T>(code: u16, message: Option<&str>) -> CicadaResult<T> {
-        Err(CicadaErrorKind::Public(CicadaError {
-            // kind: CicadaErrorKind::Public,
-            http: Some(CicadaHttpError {
-                code,
-                message: match message {
-                    Some(message) => Some(message.to_string()),
-                    _ => None
-                }
-            }),
-            custom: None,
-            source: None
-        }))
+    pub fn log_custom<T>(log: CicadaErrorLog, identifier: &str, description: &str) -> CicadaResult<T> {
+        CicadaError::new(log, None, Some(CicadaCustomError {
+            identifier: identifier.to_string(),
+            description: description.to_string()
+        }), None)
+    }
+
+    pub fn custom<T>(identifier: &str, description: &str) -> CicadaResult<T> {
+        CicadaError::log_custom(CicadaErrorLog::None, identifier, description)
+    }
+
+    pub fn log_real<T>(log: CicadaErrorLog, error: Box<dyn Error>) -> CicadaResult<T> {
+        Err(CicadaErrorKind::Hidden(CicadaError::real_raw(log, error)))
+    }
+
+    pub fn real<T>(error: Box<dyn Error>) -> CicadaResult<T> {
+        CicadaError::log_real(CicadaErrorLog::None, error)
+    }
+
+    pub fn real_raw(log: CicadaErrorLog, error: Box<dyn Error>) -> Self {
+        CicadaError {
+            log, http: None, custom: None, source: Some(error)
+        }
+    }
+
+    pub fn too_many_requests<T>(message: CicadaHttpLog) -> CicadaResult<T> {
+        CicadaError::log_http(CicadaErrorLog::Info, 429, message)
+    }
+
+    pub fn internal<T>(message: CicadaHttpLog) -> CicadaResult<T> {
+        CicadaError::log_http(CicadaErrorLog::Error, 500, message)
+    }
+
+    pub fn forbidden<T>(message: CicadaHttpLog) -> CicadaResult<T> {
+        CicadaError::log_http(CicadaErrorLog::Warn, 403, message)
     }
 
 }
@@ -87,11 +188,11 @@ impl Display for CicadaError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 
         if let Some(error) = &self.custom {
-            write!(f, "Application error [{}]: {}", error.identifier, error.description);
+            write!(f, "Application error [{}]: {}", error.identifier, error.description)?;
         }
 
         if let Some(error) = &self.source {
-            write!(f, "Internal error: {}", error);
+            write!(f, "Internal error: {}", error)?;
         }
 
         Ok(())
@@ -108,11 +209,11 @@ impl Display for CicadaErrorKind {
         };
 
         if let Some(error) = &value.custom {
-            write!(f, "Application error [{}]: {}", error.identifier, error.description);
+            write!(f, "Application error [{}]: {}", error.identifier, error.description)?;
         }
 
         if let Some(error) = &value.source {
-            write!(f, "Internal error: {}", error);
+            write!(f, "Internal error: {}", error)?;
         }
 
         Ok(())
@@ -120,16 +221,22 @@ impl Display for CicadaErrorKind {
     }
 }
 
-impl Into<CicadaResponse> for AppError {
-    fn into(self) -> CicadaResponse {
-        Err(CicadaErrorKind::Hidden(self))
-    }
-}
-
 pub use CicadaError as AppError;
 
 pub type CicadaResponse = Result<Value, CicadaErrorKind>;
 pub type CicadaResult<T> = Result<T, CicadaErrorKind>;
+
+impl From<Box<dyn Error>> for CicadaError {
+    fn from(error: Box<dyn Error>) -> Self {
+        CicadaError::real_raw(CicadaErrorLog::None, error)
+    }
+}
+
+impl Into<CicadaResponse> for CicadaError {
+    fn into(self) -> CicadaResponse {
+        Err(CicadaErrorKind::Hidden(self))
+    }
+}
 
 impl From<CicadaErrorKind> for CicadaError {
     fn from(error_kind: CicadaErrorKind) -> Self {
@@ -140,80 +247,34 @@ impl From<CicadaErrorKind> for CicadaError {
     }
 }
 
-// pub type CicadaResponse = Result<Value, CicadaError>;
-// pub type CicadaResult<T> = Result<T, AppError>;
-//
-// // CicadaError for handling HTTP errors
-// #[derive(Debug)]
-// pub struct CicadaError {
-//     pub code: u16,
-//     pub message: String
-// }
-//
-// impl CicadaError {
-//
-//     pub fn new(code: u16, message: &str) -> CicadaResponse {
-//         Err(CicadaError {
-//             code, message: message.to_string()
-//         })
-//     }
-//
-//     pub fn internal(message: &str) -> CicadaResponse {
-//         Self::new(500, message)
-//     }
-//
-//     pub fn forbidden(message: &str) -> CicadaResponse {
-//         Self::new(403, message)
-//     }
-//
-// }
-//
-// impl Display for CicadaError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Error {}: {}", self.code, self.message)
-//     }
-// }
-//
-// impl Error for CicadaError {}
-//
-// impl From<AppError> for CicadaError {
-//     fn from(error: AppError) -> Self {
-//         CicadaError {
-//             code: 500,
-//             message: format!("{}", error)
-//         }
-//     }
-// }
-//
-// // AppError for handling application errors
-// #[derive(Debug)]
-// pub struct AppError(String, String, Mutex<bool>);
-//
-// impl AppError {
-//     pub fn new<T>(identifier: &str, description: &str) -> CicadaResult<T> {
-//         Err(Self(identifier.to_string(), description.to_string(), Mutex::new(false)))
-//     }
-// }
-//
-// impl Display for AppError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         *self.2.lock().unwrap() = true;
-//         write!(f, "[{}] {}", self.0, self.1)
-//     }
-// }
-//
-// impl Drop for AppError {
-//     fn drop(&mut self) {
-//         if !*self.2.lock().unwrap() {
-//             error!("[{}] {}", self.0, self.1);
-//         }
-//     }
-// }
-//
-// impl Error for AppError {}
-//
-// impl Into<CicadaResponse> for AppError {
-//     fn into(self) -> CicadaResponse {
-//         CicadaError::internal(&format!("{}", self))
-//     }
-// }
+impl<T> Into<CicadaErrorKind> for CicadaResult<T> {
+    fn into(self) -> CicadaErrorKind {
+
+        if self.is_ok() {
+            return CicadaErrorKind::Hidden(CicadaError {
+                log: CicadaErrorLog::Error,
+                http: Some(CicadaHttpError {
+                    code: 500,
+                    message: "Cannot convert Ok variant of CicadaResult into CicadaErrorKind".into()
+                }),
+                custom: None,
+                source: None
+            });
+        }
+
+        self.err().unwrap()
+
+    }
+}
+
+impl Into<CicadaHttpLog> for &str {
+    fn into(self) -> CicadaHttpLog {
+        CicadaHttpLog::Custom(self.to_string())
+    }
+}
+
+impl Into<CicadaHttpLog> for String {
+    fn into(self) -> CicadaHttpLog {
+        CicadaHttpLog::Custom(self)
+    }
+}

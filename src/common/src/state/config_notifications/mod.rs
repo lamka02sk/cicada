@@ -7,7 +7,7 @@ pub use slack::SlackNotificationsConfiguration;
 use std::any::Any;
 use std::error::Error;
 use serde::{Deserialize, Serialize};
-use crate::{Configuration, FileManager, JsonFile, implement_configuration, CicadaResult, AppError};
+use crate::{Configuration, FileManager, JsonFile, implement_configuration, CicadaResult, CicadaError, CicadaErrorLog};
 use serde_json::error::Result as SerdeResult;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -7,7 +7,7 @@ use actix_web::web::ServiceConfig;
 use serde_json::json;
 use serde_json::Value::Null;
 use tera::{Context, Tera};
-use cicada_common::{AppError, Cicada, CicadaError, CicadaErrorKind, CicadaHttpError, CicadaResponse, CicadaResult, SystemConfiguration};
+use cicada_common::{Cicada, CicadaError, CicadaErrorKind, CicadaResponse, SystemConfiguration};
 
 pub fn configure(config: &mut ServiceConfig) {
 
@@ -37,14 +37,7 @@ fn html_response(data: CicadaResponse, tera: (&Tera, &Cicada, &str)) -> HttpResp
     let html = tera.0.render(tera.2, &context);
 
     if let Err(error) = html {
-        return error_response(CicadaErrorKind::Public(CicadaError {
-            http: Some(CicadaHttpError {
-                code: 500,
-                message: Some(error.to_string())
-            }),
-            custom: None,
-            source: None
-        }))
+        return error_response(CicadaError::internal::<()>(error.to_string().into()).into());
     }
 
     HttpResponseBuilder::new(StatusCode::OK)
@@ -71,20 +64,37 @@ fn json_response(data: CicadaResponse) -> HttpResponse {
 
 fn error_response(error: CicadaErrorKind) -> HttpResponse {
 
-    let status_code = StatusCode::INTERNAL_SERVER_ERROR;
-    // let status_code = match StatusCode::from_u16(error.code) {
-    //     Ok(code) => code,
-    //     Err(_) =>
-    // };
+    let status_code = match error.get_http_code() {
+        Some(code) => match StatusCode::from_u16(code) {
+            Ok(code) => code,
+            _ => StatusCode::INTERNAL_SERVER_ERROR
+        }, None => StatusCode::INTERNAL_SERVER_ERROR
+    };
 
-    // error!("{}", error.message);
+    let default_message = match status_code.canonical_reason() {
+        Some(message) => message.to_string(),
+        None => "Unknown error".to_string()
+    };
+
+    let status_message = match error.get_http_message() {
+        Some(message) => message,
+        None => default_message.clone()
+    };
+
+    let display_message = match error {
+        CicadaErrorKind::Hidden(_) => default_message.clone(),
+        CicadaErrorKind::Public(_) => status_message.clone()
+    };
+
+    let error = CicadaError::from(error);
+    error.log(&status_message);
 
     HttpResponseBuilder::new(status_code)
         .content_type("application/json")
         .json(json!({
             "status": status_code.as_u16(),
             "success": false,
-            "message": status_code.canonical_reason(),
+            "message": display_message,
             "data": json!(Null)
         }))
 
@@ -95,7 +105,7 @@ macro_rules! not_auth { ($auth:expr) => {
     let auth_login: Option<AuthLogin> = $auth.clone().into();
 
     if let Some(_) = auth_login {
-        return error_response(CicadaError::http::<()>(403, Some("This route cannot be authenticated")).err().unwrap())
+        return error_response(CicadaError::forbidden::<()>("This route cannot be authenticated".into()).into());
     }
 
 }}
@@ -105,7 +115,7 @@ macro_rules! only_auth { ($auth:expr) => {
     let auth_login: Option<AuthLogin> = $auth.clone().into();
 
     if let None = auth_login {
-        return error_response(CicadaError::http::<()>(403, Some("This route requires authentication")).err().unwrap())
+        return error_response(CicadaError::forbidden::<()>("This route requires authentication".into()).into());
     }
 
 }}
