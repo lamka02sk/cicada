@@ -7,21 +7,29 @@ use cicada_common::crypto::password::{hash_password, verify_password};
 use cicada_common::crypto::random::token;
 use crate::{ConnectionPool, DbResult, get_connection, result, result_any};
 use crate::schema::users;
+use crate::auth::login::AuthLogin;
 
 const TOKEN_STRENGTH: usize = 96;
 
-#[derive(Debug, Queryable, Serialize)]
+#[derive(Debug, Queryable, Serialize, Clone, Identifiable)]
 pub struct User {
+    #[serde(skip)]
     pub id: i32,
     pub uuid: Uuid,
     pub firstname: String,
     pub lastname: String,
     pub email: String,
+    #[serde(skip)]
     password: String,
+    #[serde(skip)]
     pub token: String,
+    #[serde(skip)]
     pub admin: bool,
+    #[serde(skip)]
     pub enabled: bool,
+    #[serde(skip)]
     pub created_at: NaiveDateTime,
+    #[serde(skip)]
     pub updated_at: NaiveDateTime
 }
 
@@ -40,6 +48,15 @@ impl User {
         result(
             users::dsl::users
                 .filter(users::dsl::email.eq(email))
+                .filter(users::dsl::enabled.eq(true))
+                .first::<Self>(&get_connection(db)?)
+        )
+    }
+
+    pub fn from_auth_login(db: &ConnectionPool, auth_login: &AuthLogin) -> DbResult<Self> {
+        result(
+            users::dsl::users
+                .filter(users::dsl::id.eq(auth_login.user_id))
                 .filter(users::dsl::enabled.eq(true))
                 .first::<Self>(&get_connection(db)?)
         )

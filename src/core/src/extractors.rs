@@ -28,7 +28,7 @@ impl FromRequest for Headers {
         };
 
         let auth_token = match get_header_value(req, "Authorization") {
-            Some(value) => match value.split(" ").last() {
+            Some(value) => match value.split_whitespace().last() {
                 Some(value) => Some(value.to_string()),
                 None => None
             },

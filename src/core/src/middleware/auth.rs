@@ -5,7 +5,7 @@ use actix_web::dev::{ServiceRequest, ServiceResponse, Transform, Service};
 use actix_web::{Error, FromRequest, HttpMessage};
 use actix_web::web::Data;
 use cicada_database::auth::login::AuthLogin;
-use cicada_database::ConnectionPool;
+use cicada_database::{ConnectionPool, User};
 
 pub struct AuthenticateMiddleware<S> {
     service: S,
@@ -30,7 +30,7 @@ impl<S, B> Service for AuthenticateMiddleware<S>
 
         let auth_token = match req.headers().get("Authorization") {
             Some(value) => match value.to_str() {
-                Ok(value) => match value.split(" ").last() {
+                Ok(value) => match value.split_whitespace().last() {
                     Some(value) => Some(value.to_string()),
                     _ => None
                 },
@@ -44,8 +44,15 @@ impl<S, B> Service for AuthenticateMiddleware<S>
             let auth_login = AuthLogin::from_token(&db.as_ref(), &token);
 
             if let Some(auth_login) = auth_login {
+
+                if let Ok(user) = User::from_auth_login(&db.as_ref(), &auth_login) {
+                    req.extensions_mut()
+                        .insert::<User>(user);
+                }
+
                 req.extensions_mut()
                     .insert::<AuthLogin>(auth_login);
+
             }
 
         }
@@ -89,10 +96,21 @@ impl<S, B> Transform<S> for AuthenticateMiddlewareFactory
 }
 
 #[derive(Clone)]
-pub struct Auth(Option<AuthLogin>);
+pub struct Auth(Option<(AuthLogin, User)>);
 
-impl Into<Option<AuthLogin>> for Auth {
-    fn into(self) -> Option<AuthLogin> {
+impl Auth {
+
+    pub fn get_user(&self) -> Option<&User> {
+        match &self.0 {
+            Some(value) => Some(&value.1),
+            None => None
+        }
+    }
+
+}
+
+impl Into<Option<(AuthLogin, User)>> for Auth {
+    fn into(self) -> Option<(AuthLogin, User)> {
         self.0
     }
 }
@@ -104,12 +122,19 @@ impl FromRequest for Auth {
     type Config = ();
 
     fn from_request(req: &actix_web::HttpRequest, _: &mut actix_web::dev::Payload) -> Self::Future {
-        ready(
-            match req.extensions().get::<AuthLogin>() {
-                Some(auth_login) => Ok(Auth(Some(auth_login.clone()))),
-                None => Ok(Auth(None))
-            }
-        )
+
+        let mut result = Ok(Auth(None));
+        let ext = req.extensions();
+
+        let auth_login: Option<&AuthLogin> = ext.get::<AuthLogin>();
+        let user: Option<&User> = ext.get::<User>();
+
+        if auth_login.is_some() && user.is_some() {
+            result = Ok(Auth(Some((auth_login.unwrap().clone(), user.unwrap().clone()))));
+        }
+
+        ready(result)
+
     }
 
 }

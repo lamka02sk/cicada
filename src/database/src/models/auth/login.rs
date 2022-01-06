@@ -11,7 +11,9 @@ use crate::schema::auth_login;
 
 const TOKEN_STRENGTH: usize = 96;
 
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Queryable, Serialize, Associations, Clone, Debug, Identifiable)]
+#[belongs_to(User)]
+#[table_name = "auth_login"]
 pub struct AuthLogin {
     id: i32,
     pub uuid: Uuid,

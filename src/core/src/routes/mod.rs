@@ -1,4 +1,5 @@
 mod system;
+mod user;
 
 use actix_web::dev::HttpResponseBuilder;
 use actix_web::http::StatusCode;
@@ -10,10 +11,8 @@ use tera::{Context, Tera};
 use cicada_common::{Cicada, CicadaError, CicadaErrorKind, CicadaResponse, SystemConfiguration};
 
 pub fn configure(config: &mut ServiceConfig) {
-
-    config
-        .service(system::register_service());
-
+    config.service(user::register_service());
+    config.service(system::register_service());
 }
 
 fn empty_route() -> CicadaResponse {
@@ -100,22 +99,22 @@ fn error_response(error: CicadaErrorKind) -> HttpResponse {
 
 }
 
-macro_rules! not_auth { ($auth:expr) => {
+macro_rules! not_auth { ($req:expr, $auth:expr) => {
 
-    let auth_login: Option<AuthLogin> = $auth.clone().into();
+    let auth_login: Option<(AuthLogin, User)> = $auth.clone().into();
 
     if let Some(_) = auth_login {
-        return error_response(CicadaError::forbidden::<()>("This route cannot be authenticated".into()).into());
+        return error_response(CicadaError::forbidden::<()>(format!("This route cannot be authenticated: {} {}", $req.method(), $req.path()).into()).into());
     }
 
 }}
 
-macro_rules! only_auth { ($auth:expr) => {
+macro_rules! only_auth { ($req:expr, $auth:expr) => {
 
-    let auth_login: Option<AuthLogin> = $auth.clone().into();
+    let auth_login: Option<(AuthLogin, User)> = $auth.clone().into();
 
     if let None = auth_login {
-        return error_response(CicadaError::forbidden::<()>("This route requires authentication".into()).into());
+        return error_response(CicadaError::forbidden::<()>(format!("This route requires authentication: {} {}", $req.method(), $req.path()).into()).into());
     }
 
 }}
