@@ -43,7 +43,7 @@ impl<S, B> Service for AuthenticateMiddleware<S>
 
             let auth_login = AuthLogin::from_token(&db.as_ref(), &token);
 
-            if let Some(auth_login) = auth_login {
+            if let Ok(auth_login) = auth_login {
 
                 if let Ok(user) = User::from_auth_login(&db.as_ref(), &auth_login) {
                     req.extensions_mut()
@@ -103,6 +103,13 @@ impl Auth {
     pub fn get_user(&self) -> Option<&User> {
         match &self.0 {
             Some(value) => Some(&value.1),
+            None => None
+        }
+    }
+
+    pub fn get_login(&self) -> Option<&AuthLogin> {
+        match &self.0 {
+            Some(value) => Some(&value.0),
             None => None
         }
     }

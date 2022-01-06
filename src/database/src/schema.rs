@@ -15,7 +15,6 @@ table! {
         uuid -> Uuid,
         user_id -> Int4,
         secret -> Varchar,
-        token -> Varchar,
         user_agent -> Varchar,
         ip_address -> Inet,
         active -> Bool,

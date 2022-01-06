@@ -7,7 +7,6 @@ create table auth_login
             references users
             on update cascade on delete cascade,
     secret     varchar(128)                        not null,
-    token      varchar(128)                        not null,
     user_agent varchar(256)                        not null,
     ip_address inet                                not null,
     active     bool      default true              not null,
@@ -30,3 +29,5 @@ create unique index auth_login_uuid_uindex
 alter table auth_login
     add constraint auth_login_pk
         primary key (id);
+
+select diesel_manage_updated_at('auth_login');

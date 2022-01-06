@@ -129,6 +129,12 @@ impl CicadaError {
 
     }
 
+    pub fn default<T>() -> CicadaResult<T> {
+        Err(CicadaErrorKind::Hidden(CicadaError {
+            log: CicadaErrorLog::None, http: None, custom: None, source: None
+        }))
+    }
+
     pub fn new<T>(log: CicadaErrorLog, http: Option<CicadaHttpError>, custom: Option<CicadaCustomError>, source: Option<Box<dyn Error>>) -> CicadaResult<T> {
         Err(CicadaErrorKind::Hidden(CicadaError {
             log, http, custom, source

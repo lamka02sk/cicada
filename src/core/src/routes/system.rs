@@ -20,6 +20,7 @@ pub fn register_service() -> Scope {
         .service(create_admin_account)
         .service(login)
         .service(check_login)
+        .service(logout)
 
 }
 
@@ -54,4 +55,10 @@ fn login(req: HttpRequest, headers: Headers, auth: Auth, db: Data<ConnectionPool
 fn check_login(req: HttpRequest, auth: Auth) -> HttpResponse {
     only_auth!(req, auth);
     json_response(empty_route())
+}
+
+#[get("/auth/logout")]
+fn logout(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_system::auth::logout(db.as_ref(), auth.get_login().unwrap()))
 }

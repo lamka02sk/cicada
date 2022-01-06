@@ -28,3 +28,5 @@ create unique index users_uuid_uindex
 alter table users
     add constraint users_pk
         primary key (id);
+
+select diesel_manage_updated_at('users');
