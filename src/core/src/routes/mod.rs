@@ -3,7 +3,7 @@ mod user;
 
 use actix_web::dev::HttpResponseBuilder;
 use actix_web::http::StatusCode;
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, Route, web};
 use actix_web::web::ServiceConfig;
 use serde_json::json;
 use serde_json::Value::Null;
@@ -13,6 +13,12 @@ use cicada_common::{Cicada, CicadaError, CicadaErrorKind, CicadaResponse, System
 pub fn configure(config: &mut ServiceConfig) {
     config.service(user::register_service());
     config.service(system::register_service());
+}
+
+pub fn default() -> Route {
+    web::route().to(|| {
+        json_response(CicadaError::not_found().into())
+    })
 }
 
 fn empty_route() -> CicadaResponse {

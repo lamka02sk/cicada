@@ -64,6 +64,7 @@ pub async fn start() -> std::io::Result<()> {
             .app_data(Data::new(tera.clone()))
             .app_data(Data::new(pool.clone()))
             .configure(routes::configure)
+            .default_service(routes::default())
     });
 
     for bind in &system_config.bind {

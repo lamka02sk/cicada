@@ -188,6 +188,10 @@ impl CicadaError {
         CicadaError::log_http(CicadaErrorLog::Warn, 403, message)
     }
 
+    pub fn not_found() -> CicadaResult<Value> {
+        CicadaError::http(404, CicadaHttpLog::Default)
+    }
+
 }
 
 impl Display for CicadaError {
