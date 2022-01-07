@@ -23,13 +23,9 @@ pub struct User {
     password: String,
     #[serde(skip)]
     pub token: String,
-    #[serde(skip)]
     pub admin: bool,
-    #[serde(skip)]
     pub enabled: bool,
-    #[serde(skip)]
     pub created_at: NaiveDateTime,
-    #[serde(skip)]
     pub updated_at: NaiveDateTime
 }
 
