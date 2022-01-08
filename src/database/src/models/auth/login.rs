@@ -10,6 +10,7 @@ use cicada_common::crypto::hash::hmac_sign;
 use cicada_common::crypto::random::token;
 use crate::{ConnectionPool, DbResult, get_connection, result, User};
 use crate::schema::auth_login;
+use crate::diesel::BelongingToDsl;
 
 const TOKEN_STRENGTH: usize = 96;
 
@@ -17,9 +18,12 @@ const TOKEN_STRENGTH: usize = 96;
 #[belongs_to(User)]
 #[table_name = "auth_login"]
 pub struct AuthLogin {
+    #[serde(skip)]
     id: i32,
     pub uuid: Uuid,
+    #[serde(skip)]
     pub user_id: i32,
+    #[serde(skip)]
     secret: String,
     pub user_agent: String,
     pub ip_address: IpNetwork,
@@ -89,6 +93,10 @@ impl AuthLogin {
                 .filter(auth_login::dsl::active.eq(true))
                 .first(&get_connection(db)?)
         )
+    }
+
+    pub fn from_user(db: &ConnectionPool, user: &User) -> DbResult<Vec<Self>> {
+        result(Self::belonging_to(user).limit(50).get_results(&get_connection(db)?))
     }
 
     pub fn deactivate(&self, db: &ConnectionPool) -> DbResult<usize> {

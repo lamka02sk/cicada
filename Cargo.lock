@@ -561,14 +561,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cicada-controllers"
+version = "0.1.0"
+dependencies = [
+ "cicada-common",
+ "cicada-database",
+ "log",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cicada-core"
 version = "0.1.0"
 dependencies = [
  "actix-cors",
  "actix-web",
  "cicada-common",
+ "cicada-controllers",
  "cicada-database",
- "cicada-system",
  "log",
  "serde",
  "serde_json",
@@ -588,17 +599,6 @@ dependencies = [
  "log",
  "serde",
  "uuid",
-]
-
-[[package]]
-name = "cicada-system"
-version = "0.1.0"
-dependencies = [
- "cicada-common",
- "cicada-database",
- "log",
- "serde",
- "serde_json",
 ]
 
 [[package]]

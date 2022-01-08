@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod users;
 
 use serde_json::{json, Value};
 use cicada_common::{CicadaError, CicadaResponse};

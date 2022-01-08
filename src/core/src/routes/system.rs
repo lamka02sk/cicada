@@ -36,19 +36,19 @@ fn ping() -> HttpResponse {
 
 #[get("/status")]
 fn status(db: Data<ConnectionPool>) -> HttpResponse {
-    json_response(cicada_system::get_status(db.as_ref()))
+    json_response(cicada_controllers::get_status(db.as_ref()))
 }
 
 #[post("/setup/create-admin-account")]
 fn create_admin_account(req: HttpRequest, db: Data<ConnectionPool>, auth: Auth, mut user: web::Json<NewUser>) -> HttpResponse {
     not_auth!(req, auth);
-    json_response(cicada_system::create_admin_account(db.as_ref(), &mut user))
+    json_response(cicada_controllers::create_admin_account(db.as_ref(), &mut user))
 }
 
 #[post("/auth/login")]
 fn login(req: HttpRequest, headers: Headers, auth: Auth, db: Data<ConnectionPool>, mut login: web::Json<LoginForm>) -> HttpResponse {
     not_auth!(req, auth);
-    json_response(cicada_system::auth::login(headers.into(), db.as_ref(), &mut login))
+    json_response(cicada_controllers::auth::login(headers.into(), db.as_ref(), &mut login))
 }
 
 #[get("/auth/check")]
@@ -60,5 +60,5 @@ fn check_login(req: HttpRequest, auth: Auth) -> HttpResponse {
 #[get("/auth/logout")]
 fn logout(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
     only_auth!(req, auth);
-    json_response(cicada_system::auth::logout(db.as_ref(), auth.get_login().unwrap()))
+    json_response(cicada_controllers::auth::logout(db.as_ref(), auth.get_login().unwrap()))
 }
