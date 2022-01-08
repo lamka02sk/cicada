@@ -2,7 +2,7 @@ use actix_web::{HttpRequest, HttpResponse, Scope, web, get, put};
 use actix_web::web::Data;
 use cicada_common::CicadaResponse;
 use cicada_database::{ConnectionPool, SelfUpdateUser, User};
-use cicada_database::auth::login::AuthLogin;
+use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
 use crate::middleware::auth::Auth;
 use crate::routes::*;
 
@@ -12,6 +12,7 @@ pub fn register_service() -> Scope {
         .service(authenticated)
         .service(update_self)
         .service(logins)
+        .service(disable_login)
 
 }
 
@@ -33,4 +34,10 @@ fn update_self(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user: web
 fn logins(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::get_logins(db.as_ref(), &auth.get_user().unwrap()))
+}
+
+#[put("/login/disable")]
+fn disable_login(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, login: web::Json<UUIDAuthLogin>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::disable_login(db.as_ref(), &auth.get_user().unwrap(), &login))
 }

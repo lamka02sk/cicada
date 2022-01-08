@@ -96,7 +96,7 @@ impl AuthLogin {
     }
 
     pub fn from_user(db: &ConnectionPool, user: &User) -> DbResult<Vec<Self>> {
-        result(Self::belonging_to(user).limit(50).get_results(&get_connection(db)?))
+        result(Self::belonging_to(user).limit(50).order_by(auth_login::dsl::id.desc()).get_results(&get_connection(db)?))
     }
 
     pub fn deactivate(&self, db: &ConnectionPool) -> DbResult<usize> {
@@ -119,4 +119,9 @@ pub struct NewAuthLogin {
     pub user_agent: String,
     pub ip_address: IpNetwork,
     pub active: bool
+}
+
+#[derive(Deserialize)]
+pub struct UUIDAuthLogin {
+    pub uuid: Uuid
 }
