@@ -24,6 +24,17 @@ table! {
 }
 
 table! {
+    user_security (id) {
+        id -> Int4,
+        user_id -> Int4,
+        login_duration -> Int4,
+        two_factor -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     users (id) {
         id -> Int4,
         uuid -> Uuid,
@@ -41,9 +52,11 @@ table! {
 
 joinable!(auth_attempts -> users (user_id));
 joinable!(auth_login -> users (user_id));
+joinable!(user_security -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     auth_attempts,
     auth_login,
+    user_security,
     users,
 );

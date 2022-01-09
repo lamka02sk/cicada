@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 use std::str::FromStr;
-use chrono::NaiveDateTime;
+use std::thread;
+use chrono::{Duration, Local, NaiveDateTime};
 use diesel::{ExpressionMethods, insert_into, QueryDsl, RunQueryDsl, update};
 use ipnetwork::IpNetwork;
 use uuid::Uuid;
@@ -11,6 +12,7 @@ use cicada_common::crypto::random::token;
 use crate::{ConnectionPool, DbResult, get_connection, result, User};
 use crate::schema::auth_login;
 use crate::diesel::BelongingToDsl;
+use crate::user_security::UserSecurity;
 
 const TOKEN_STRENGTH: usize = 96;
 
@@ -76,11 +78,20 @@ impl AuthLogin {
 
         let auth_login = Self::from_uuid(db, &payload)?;
         let user = User::from_auth_login(db, &auth_login)?;
+        let security = UserSecurity::from_user(db, &user)?;
+
+        let valid_until = Local::now() - Duration::days(security.login_duration as i64);
+        if valid_until.naive_local() > auth_login.updated_at {
+            return CicadaError::default();
+        }
 
         let real_signature = hmac_sign(&auth_login.secret, &user.token)?;
 
         match signature == &real_signature {
-            true => Ok(auth_login),
+            true => {
+                auth_login.update_timestamp(db);
+                Ok(auth_login)
+            },
             false => CicadaError::default()
         }
 
@@ -96,11 +107,31 @@ impl AuthLogin {
     }
 
     pub fn from_user(db: &ConnectionPool, user: &User) -> DbResult<Vec<Self>> {
-        result(Self::belonging_to(user).limit(50).order_by(auth_login::dsl::id.desc()).get_results(&get_connection(db)?))
+        result(
+            Self::belonging_to(user)
+                .limit(20)
+                .order_by(auth_login::dsl::active.desc())
+                .order_by(auth_login::dsl::id.desc())
+                .get_results(&get_connection(db)?)
+        )
     }
 
     pub fn deactivate(&self, db: &ConnectionPool) -> DbResult<usize> {
         result(update(self).set(&ActivateAuthLogin { active: false }).execute(&get_connection(db)?))
+    }
+
+    pub fn update_timestamp(&self, db: &ConnectionPool) {
+
+        let auth_login = self.clone();
+        let conn = match get_connection(db) {
+            Ok(c) => c,
+            _ => return
+        };
+
+        thread::spawn(move || {
+            update(&auth_login).set(auth_login::dsl::updated_at.eq(Local::now().naive_local())).execute(&conn).unwrap();
+        });
+
     }
 
 }

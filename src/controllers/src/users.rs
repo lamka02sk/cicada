@@ -2,6 +2,7 @@ use serde_json::json;
 use cicada_common::{CicadaError, CicadaHttpLog, CicadaResponse};
 use cicada_database::{ConnectionPool, SelfUpdateUser, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
+use cicada_database::user_security::{UpdateUserSecurity, UserSecurity};
 
 pub fn update_self(db: &ConnectionPool, user: &SelfUpdateUser) -> CicadaResponse {
     user.update(db)?;
@@ -26,4 +27,15 @@ pub fn disable_login(db: &ConnectionPool, user: &User, login: &UUIDAuthLogin) ->
         false => CicadaError::forbidden(CicadaHttpLog::Default)
     }
 
+}
+
+pub fn get_security(db: &ConnectionPool, user: &User) -> CicadaResponse {
+    Ok(json!({
+        "user_security": UserSecurity::from_user(db, user)?
+    }))
+}
+
+pub fn update_security(db: &ConnectionPool, user: &User, security: &UpdateUserSecurity) -> CicadaResponse {
+    security.update(db, user)?;
+    Ok(json!({}))
 }

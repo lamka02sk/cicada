@@ -5,9 +5,10 @@ use uuid::Uuid;
 use cicada_common::CicadaResult;
 use cicada_common::crypto::password::{hash_password, verify_password};
 use cicada_common::crypto::random::token;
-use crate::{ConnectionPool, DbResult, get_connection, result, result_any};
+use crate::{ConnectionPool, DbResult, get_connection, result};
 use crate::schema::users;
 use crate::auth::login::AuthLogin;
+use crate::user_security::NewUserSecurity;
 
 const TOKEN_STRENGTH: usize = 96;
 
@@ -120,7 +121,12 @@ impl NewUser {
         self.admin = admin;
         self.enabled = true;
 
-        result_any(insert_into(users::dsl::users).values(&*self).execute(&conn))
+        let user_id = result(
+            insert_into(users::dsl::users).values(&*self).returning(users::dsl::id).get_result::<i32>(&conn)
+        )?;
+
+        NewUserSecurity::create(db, user_id)?;
+        Ok(String::new())
 
     }
 

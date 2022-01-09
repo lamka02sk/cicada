@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use cicada_common::CicadaResponse;
 use cicada_database::{ConnectionPool, SelfUpdateUser, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
+use cicada_database::user_security::UpdateUserSecurity;
 use crate::middleware::auth::Auth;
 use crate::routes::*;
 
@@ -13,6 +14,8 @@ pub fn register_service() -> Scope {
         .service(update_self)
         .service(logins)
         .service(disable_login)
+        .service(security)
+        .service(update_security)
 
 }
 
@@ -40,4 +43,16 @@ fn logins(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpRespons
 fn disable_login(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, login: web::Json<UUIDAuthLogin>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::disable_login(db.as_ref(), &auth.get_user().unwrap(), &login))
+}
+
+#[get("/security")]
+fn security(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::get_security(db.as_ref(), &auth.get_user().unwrap()))
+}
+
+#[put("/security")]
+fn update_security(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user_security: web::Json<UpdateUserSecurity>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::update_security(db.as_ref(), &auth.get_user().unwrap(), &user_security))
 }
