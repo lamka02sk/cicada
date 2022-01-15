@@ -1,6 +1,6 @@
 use serde_json::json;
 use cicada_common::{CicadaError, CicadaHttpLog, CicadaResponse};
-use cicada_database::{ConnectionPool, SelfUpdateUser, User};
+use cicada_database::{ConnectionPool, SelfUpdateUser, TokenUpdateUser, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
 use cicada_database::user_security::{UpdateUserSecurity, UserSecurity};
 
@@ -37,5 +37,11 @@ pub fn get_security(db: &ConnectionPool, user: &User) -> CicadaResponse {
 
 pub fn update_security(db: &ConnectionPool, user: &User, security: &UpdateUserSecurity) -> CicadaResponse {
     security.update(db, user)?;
+    Ok(json!({}))
+}
+
+pub fn token_refresh(db: &ConnectionPool, user: &User) -> CicadaResponse {
+    let token = TokenUpdateUser::new()?;
+    user.update_token(db, token)?;
     Ok(json!({}))
 }

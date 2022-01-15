@@ -67,6 +67,10 @@ impl User {
         )
     }
 
+    pub fn update_token(&self, db: &ConnectionPool, token: TokenUpdateUser) -> DbResult<usize> {
+        result(update(self).set(&token).execute(&get_connection(db)?))
+    }
+
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
@@ -83,19 +87,19 @@ impl SelfUpdateUser {
     }
 }
 
-// #[derive(Debug, Identifiable, Deserialize)]
-// #[table_name = "users"]
-// pub struct FormUser<'a> {
-//     id: i32,
-//     pub uuid: Uuid,
-//     pub firstname: &'a str,
-//     pub lastname: &'a str,
-//     pub email: &'a str,
-//     password: String,
-//     token: String,
-//     pub admin: bool,
-//     pub enabled: bool
-// }
+#[derive(Debug, AsChangeset, Deserialize)]
+#[table_name = "users"]
+pub struct TokenUpdateUser {
+    token: String
+}
+
+impl TokenUpdateUser {
+    pub fn new() -> CicadaResult<Self> {
+        Ok(Self {
+            token: token(TOKEN_STRENGTH)?
+        })
+    }
+}
 
 #[derive(Debug, Insertable, Deserialize)]
 #[table_name = "users"]

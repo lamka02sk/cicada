@@ -16,6 +16,7 @@ pub fn register_service() -> Scope {
         .service(disable_login)
         .service(security)
         .service(update_security)
+        .service(token_refresh)
 
 }
 
@@ -55,4 +56,10 @@ fn security(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpRespo
 fn update_security(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user_security: web::Json<UpdateUserSecurity>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::update_security(db.as_ref(), &auth.get_user().unwrap(), &user_security))
+}
+
+#[get("/token/refresh")]
+fn token_refresh(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::token_refresh(db.as_ref(), &auth.get_user().unwrap()))
 }
