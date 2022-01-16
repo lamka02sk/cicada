@@ -1,9 +1,11 @@
 use actix_web::{HttpRequest, HttpResponse, Scope, web, get, put};
 use actix_web::web::Data;
 use cicada_common::CicadaResponse;
-use cicada_database::{ConnectionPool, SelfUpdateUser, User};
+use cicada_database::{ConnectionPool, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
-use cicada_database::user_security::UpdateUserSecurity;
+use cicada_database::change_password::ChangePasswordForm;
+use cicada_database::update::SelfUpdateUser;
+use cicada_database::security::UpdateUserSecurity;
 use crate::middleware::auth::Auth;
 use crate::routes::*;
 
@@ -17,6 +19,7 @@ pub fn register_service() -> Scope {
         .service(security)
         .service(update_security)
         .service(token_refresh)
+        .service(change_password)
 
 }
 
@@ -62,4 +65,10 @@ fn update_security(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user_
 fn token_refresh(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::token_refresh(db.as_ref(), &auth.get_user().unwrap()))
+}
+
+#[put("/password/change")]
+fn change_password(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, passwords: web::Json<ChangePasswordForm>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::change_password(db.as_ref(), &auth.get_user().unwrap(), &passwords))
 }

@@ -1,14 +1,20 @@
+pub mod token;
+pub mod new;
+pub mod change_password;
+pub mod update;
+pub mod security;
+
 use chrono::NaiveDateTime;
-use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl, select, insert_into, update};
+use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl, select, update};
 use diesel::dsl::exists;
 use uuid::Uuid;
 use cicada_common::CicadaResult;
-use cicada_common::crypto::password::{hash_password, verify_password};
-use cicada_common::crypto::random::token;
+use cicada_common::crypto::password::verify_password;
 use crate::{ConnectionPool, DbResult, get_connection, result};
 use crate::schema::users;
 use crate::auth::login::AuthLogin;
-use crate::user_security::NewUserSecurity;
+use crate::change_password::ChangePassword;
+use crate::token::TokenUpdateUser;
 
 const TOKEN_STRENGTH: usize = 96;
 
@@ -71,67 +77,8 @@ impl User {
         result(update(self).set(&token).execute(&get_connection(db)?))
     }
 
-}
-
-#[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "users"]
-pub struct SelfUpdateUser {
-    pub uuid: Uuid,
-    pub firstname: String,
-    pub lastname: String
-}
-
-impl SelfUpdateUser {
-    pub fn update(&self, db: &ConnectionPool) -> DbResult<usize> {
-        result(update(users::table).set(self).execute(&get_connection(db)?))
-    }
-}
-
-#[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "users"]
-pub struct TokenUpdateUser {
-    token: String
-}
-
-impl TokenUpdateUser {
-    pub fn new() -> CicadaResult<Self> {
-        Ok(Self {
-            token: token(TOKEN_STRENGTH)?
-        })
-    }
-}
-
-#[derive(Debug, Insertable, Deserialize)]
-#[table_name = "users"]
-pub struct NewUser {
-    pub firstname: String,
-    pub lastname: String,
-    pub email: String,
-    password: String,
-    token: String,
-    admin: bool,
-    enabled: bool
-}
-
-impl NewUser {
-
-    pub fn create(&mut self, db: &ConnectionPool, admin: bool) -> CicadaResult<String> {
-
-        let conn = get_connection(db)?;
-
-        self.token = token(TOKEN_STRENGTH)?;
-        self.password = hash_password(&self.password)?;
-
-        self.admin = admin;
-        self.enabled = true;
-
-        let user_id = result(
-            insert_into(users::dsl::users).values(&*self).returning(users::dsl::id).get_result::<i32>(&conn)
-        )?;
-
-        NewUserSecurity::create(db, user_id)?;
-        Ok(String::new())
-
+    pub fn update_password(&self, db: &ConnectionPool, password: ChangePassword) -> DbResult<usize> {
+        result(update(self).set(&password).execute(&get_connection(db)?))
     }
 
 }

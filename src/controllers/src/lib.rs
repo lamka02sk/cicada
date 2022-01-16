@@ -3,7 +3,8 @@ pub mod users;
 
 use serde_json::{json, Value};
 use cicada_common::{CicadaError, CicadaResponse};
-use cicada_database::{ConnectionPool, NewUser, User};
+use cicada_database::{ConnectionPool, User};
+use cicada_database::new::NewUser;
 
 pub fn get_status(db: &ConnectionPool) -> CicadaResponse {
     Ok(json!({

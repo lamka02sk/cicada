@@ -12,7 +12,7 @@ use cicada_common::crypto::random::token;
 use crate::{ConnectionPool, DbResult, get_connection, result, User};
 use crate::schema::auth_login;
 use crate::diesel::BelongingToDsl;
-use crate::user_security::UserSecurity;
+use crate::security::UserSecurity;
 
 const TOKEN_STRENGTH: usize = 96;
 
