@@ -3,6 +3,7 @@ pub mod new;
 pub mod change_password;
 pub mod update;
 pub mod security;
+pub mod notifications;
 
 use chrono::NaiveDateTime;
 use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl, select, update};

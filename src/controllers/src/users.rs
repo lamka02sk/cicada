@@ -3,6 +3,7 @@ use cicada_common::{CicadaError, CicadaHttpLog, CicadaResponse, CicadaResult};
 use cicada_database::{ConnectionPool, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
 use cicada_database::change_password::ChangePasswordForm;
+use cicada_database::notifications::{UpdateUserNotifications, UserNotifications};
 use cicada_database::token::TokenUpdateUser;
 use cicada_database::update::SelfUpdateUser;
 use cicada_database::security::{UpdateUserSecurity, UserSecurity};
@@ -58,4 +59,15 @@ pub fn change_password(db: &ConnectionPool, user: &User, passwords: &ChangePassw
     user.update_password(db, CicadaResult::from(passwords)?)?;
     Ok(json!({}))
 
+}
+
+pub fn get_notifications(db: &ConnectionPool, user: &User) -> CicadaResponse {
+    Ok(json!({
+        "user_notifications": UserNotifications::from_user(db, user)?
+    }))
+}
+
+pub fn update_notifications(db: &ConnectionPool, user: &User, notifications: &UpdateUserNotifications) -> CicadaResponse {
+    notifications.update(db, user)?;
+    Ok(json!({}))
 }

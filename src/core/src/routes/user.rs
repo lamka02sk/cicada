@@ -4,6 +4,7 @@ use cicada_common::CicadaResponse;
 use cicada_database::{ConnectionPool, User};
 use cicada_database::auth::login::{AuthLogin, UUIDAuthLogin};
 use cicada_database::change_password::ChangePasswordForm;
+use cicada_database::notifications::UpdateUserNotifications;
 use cicada_database::update::SelfUpdateUser;
 use cicada_database::security::UpdateUserSecurity;
 use crate::middleware::auth::Auth;
@@ -20,6 +21,8 @@ pub fn register_service() -> Scope {
         .service(update_security)
         .service(token_refresh)
         .service(change_password)
+        .service(notifications)
+        .service(update_notifications)
 
 }
 
@@ -71,4 +74,16 @@ fn token_refresh(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> Http
 fn change_password(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, passwords: web::Json<ChangePasswordForm>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::change_password(db.as_ref(), &auth.get_user().unwrap(), &passwords))
+}
+
+#[get("/notifications")]
+fn notifications(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::get_notifications(db.as_ref(), &auth.get_user().unwrap()))
+}
+
+#[put("/notifications")]
+fn update_notifications(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user_notifications: web::Json<UpdateUserNotifications>) -> HttpResponse {
+    only_auth!(req, auth);
+    json_response(cicada_controllers::users::update_notifications(db.as_ref(), &auth.get_user().unwrap(), &user_notifications))
 }

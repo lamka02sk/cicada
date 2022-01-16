@@ -20,6 +20,22 @@ table! {
         active -> Bool,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        two_factor_code -> Varchar,
+    }
+}
+
+table! {
+    user_notifications (id) {
+        id -> Int4,
+        user_id -> Int4,
+        auth_login -> Bool,
+        auth_password_change -> Bool,
+        auth_attempt -> Bool,
+        deploy_start -> Bool,
+        deploy_finish -> Bool,
+        deploy_fail -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -52,11 +68,13 @@ table! {
 
 joinable!(auth_attempts -> users (user_id));
 joinable!(auth_login -> users (user_id));
+joinable!(user_notifications -> users (user_id));
 joinable!(user_security -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     auth_attempts,
     auth_login,
+    user_notifications,
     user_security,
     users,
 );

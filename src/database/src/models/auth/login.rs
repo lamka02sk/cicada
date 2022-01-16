@@ -31,7 +31,9 @@ pub struct AuthLogin {
     pub ip_address: IpNetwork,
     pub active: bool,
     pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime
+    pub updated_at: NaiveDateTime,
+    #[serde(skip)]
+    two_factor_code: String
 }
 
 impl AuthLogin {
