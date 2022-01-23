@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use cicada_common::{CicadaError, CicadaResult};
+use cicada_common::{CicadaError, CicadaHttpLog, CicadaResult};
 use crate::{ConnectionPool, User};
 use crate::auth::attempts::AuthAttempt;
 
@@ -22,9 +22,15 @@ impl LoginForm {
             return CicadaError::too_many_requests(format!("The limit of login attempts was exceeded for user ({})", user.uuid).into());
         }
 
-        if let Err(error) = user.verify_password(&self.password) {
+        let verify_result = user.verify_password(&self.password);
+
+        if let Err(error) = verify_result {
             AuthAttempt::new(db, &user, user_agent, ip_address)?;
             return Err(error);
+        }
+
+        if !verify_result.unwrap() {
+            return CicadaError::make_public(CicadaError::forbidden(CicadaHttpLog::Custom("Invalid credentials".to_string())));
         }
 
         Ok(user)

@@ -26,7 +26,7 @@ pub fn register_service() -> Scope {
 
 }
 
-#[get("/auth")]
+#[get("/authenticated")]
 fn authenticated(req: HttpRequest, auth: Auth) -> HttpResponse {
     only_auth!(req, auth);
     json_response(CicadaResponse::Ok(json!({
@@ -34,7 +34,7 @@ fn authenticated(req: HttpRequest, auth: Auth) -> HttpResponse {
     })))
 }
 
-#[put("/update/self")]
+#[put("/update")]
 fn update_self(req: HttpRequest, auth: Auth, db: Data<ConnectionPool>, user: web::Json<SelfUpdateUser>) -> HttpResponse {
     only_auth!(req, auth);
     json_response(cicada_controllers::users::update_self(db.as_ref(), &user))
